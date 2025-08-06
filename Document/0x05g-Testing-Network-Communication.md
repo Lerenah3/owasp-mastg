@@ -105,7 +105,7 @@ In Burp, go to the **Proxy** tab, select the **Options** tab, then go to the **P
 
 - Accepting incorrect hostnames
 
-In Burp,go to the **Proxy** tab, select the **Options** tab, then go to the **Proxy Listeners** section, highlight your listener, and click **Edit**. Then go to the **Certificate** tab, check **Generate a CA-signed certificate with a specific hostname**, and type in an invalid hostname, e.g., example.org. Now, run your application. If you're able to see HTTPS traffic, your application is accepting all hostnames.
+In Burp, go to the **Proxy** tab, select the **Options** tab, then go to the **Proxy Listeners** section, highlight your listener, and click **Edit**. Then go to the **Certificate** tab, check **Generate a CA-signed certificate with a specific hostname**, and type in an invalid hostname, e.g., example.org. Now, run your application. If you're able to see HTTPS traffic, your application is accepting all hostnames.
 
 If you're interested in further MITM analysis or you have problems with the configuration of your interception proxy, consider using [Tapioca](https://insights.sei.cmu.edu/cert/2014/08/-announcing-cert-tapioca-for-mitm-analysis.html "Announcing CERT Tapioca for MITM Analysis"). It's a CERT pre-configured [VM appliance](http://www.cert.org/download/mitm/CERT_Tapioca.ova "CERT Tapioca Virtual Machine Download") for MITM software analysis. All you have to do is [deploy a tested application on an emulator and start capturing traffic](https://insights.sei.cmu.edu/cert/2014/09/-finding-android-ssl-vulnerabilities-with-cert-tapioca.html "Finding Android SSL vulnerabilities with CERT Tapioca").
 
@@ -128,7 +128,7 @@ Note that there are various options when dealing with a failing pin:
 
 Which option(s) you choose depends on how important availability is compared to the complexity of maintaining the application.
 
-When a large amount of pinfailures are reported to the backend or crash-reporting service, the developer should understand that there is probably a misconfiguration. There is a large chance that the key materials used at the TLS terminating endpoint (e.g. server/loadbalancer) is different than what the app is expecting. In that case, an update of either that key material or an update of the app should be pushed through.
+When a large amount of pin failures are reported to the backend or crash-reporting service, the developer should understand that there is probably a misconfiguration. There is a large chance that the key materials used at the TLS terminating endpoint (e.g. server/loadbalancer) is different than what the app is expecting. In that case, an update of either that key material or an update of the app should be pushed through.
 
 When only very few pin failures are reported, then the network should be ok, and so should be the configuration of the TLS terminating endpoint. Instead, it might well be that there is a man-in-the-middle attack ongoing at the app instance of which the pin is failing.
 
@@ -157,7 +157,7 @@ Open the identified file. In this case, the file can be found at "res/xml/networ
   <?xml version="1.0" encoding="utf-8"?>
   <network-security-config>
       <domain-config>
-          <!-- Use certificate pinning for OWASP website access including sub domains -->
+          Use certificate pinning for OWASP website access including sub domains
           <domain includeSubdomains="true">owasp.org</domain>
           <pin-set expiration="2018/8/10">
               <!-- Hash of the public key (SubjectPublicKeyInfo of the X.509 certificate) of
@@ -351,7 +351,7 @@ Somewhere in the application, both the endpoint and the certificate (or its hash
 
 - Certificate hashes: `grep -ri "sha256\|sha1" ./smali`. Replace the identified hashes with the hash of your proxy's CA. Alternatively, if the hash is accompanied by a domain name, you can try modifying the domain name to a non-existing domain so that the original domain is not pinned. This works well on obfuscated OkHTTP implementations.
 - Certificate files: `find ./assets -type f \( -iname \*.cer -o -iname \*.crt \)`. Replace these files with your proxy's certificates, making sure they are in the correct format.
-- Truststore files: `find ./ -type f \( -iname \*.jks -o -iname \*.bks \)`. Add your proxy's certificates to the trustore and make sure they are in the correct format.
+- Truststore files: `find ./ -type f \( -iname \*.jks -o -iname \*.bks \)`. Add your proxy's certificates to the truststore and make sure they are in the correct format.
 
 > Keep in mind that an app might contain files without extension. The most common file locations are `assets` and `res` directories, which should also be investigated.
 
@@ -409,7 +409,7 @@ This protection can be bypassed by using a custom Network Security Configuration
 
 ### Static Analysis
 
-Use a decompiler (e.g. jadx or apktool) to confirm the target SDK version. After decoding the the app you can look for the presence of `targetSDK` present in the file apktool.yml that was created in the output folder.
+Use a decompiler (e.g. jadx or apktool) to confirm the target SDK version. After decoding the app you can look for the presence of `targetSDK` present in the file apktool.yml that was created in the output folder.
 
 The Network Security Configuration should be analyzed to determine what settings are configured. The file is located inside the APK in the /res/xml/ folder with the name network_security_config.xml.
 
@@ -658,8 +658,8 @@ When you do not have the source code:
 
 #### Android Developer Documentation
 
-- Network Security Config - <https://developer.android.com/training/articles/security-config>
-- Network Security Config (cached alternative) - <https://webcache.googleusercontent.com/search?q=cache:hOONLxvMTwYJ:https://developer.android.com/training/articles/security-config+&cd=10&hl=nl&ct=clnk&gl=nl>
+- Network Security Configuration - <https://developer.android.com/training/articles/security-config>
+- Network Security Configuration (cached alternative) - <https://webcache.googleusercontent.com/search?q=cache:hOONLxvMTwYJ:https://developer.android.com/training/articles/security-config+&cd=10&hl=nl&ct=clnk&gl=nl>
 
 #### Xamarin Certificate Pinning
 

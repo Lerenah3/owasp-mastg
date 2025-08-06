@@ -88,34 +88,32 @@ Check `AndroidManifest.xml` to determine whether the `android:debuggable` attrib
     ...
 ```
 
+You can use `aapt` tool from the Android SDK with the following command line to quickly check if the `android:debuggable="true"` directive is present:
+
+```bash
+# If the command print 1 then the directive is present
+# The regex search for this line: android:debuggable(0x0101000f)=(type 0x12)0xffffffff
+$ aapt d xmltree sieve.apk AndroidManifest.xml | grep -Ec "android:debuggable\(0x[0-9a-f]+\)=\(type\s0x[0-9a-f]+\)0xffffffff"
+1
+```
+
 For a release build, this attribute should always be set to `"false"` (the default value).
 
 ### Dynamic Analysis
 
-Drozer can be used to determine whether an application is debuggable. The Drozer module `app.package.attacksurface` also displays information about IPC components exported by the application.
+`adb` can be used to determine whether an application is debuggable.
+
+Use the following command:
 
 ```bash
-dz> run app.package.attacksurface com.mwr.dz
-Attack Surface:
-  1 activities exported
-  1 broadcast receivers exported
-  0 content providers exported
-  0 services exported
-    is debuggable
-```
-
-To scan for all debuggable applications on a device, use the `app.package.debuggable` module:
-
-```bash
-dz> run app.package.debuggable
-Package: com.mwr.dz
-  UID: 10083
-  Permissions:
-   - android.permission.INTERNET
-Package: com.vulnerable.app
-  UID: 10084
-  Permissions:
-   - android.permission.INTERNET
+# If the command print a number superior to zero then the application have the debug flag
+# The regex search for these lines:
+# flags=[ DEBUGGABLE HAS_CODE ALLOW_CLEAR_USER_DATA ALLOW_BACKUP ]
+# pkgFlags=[ DEBUGGABLE HAS_CODE ALLOW_CLEAR_USER_DATA ALLOW_BACKUP ]
+$ adb shell dumpsys package com.mwr.example.sieve | grep -c "DEBUGGABLE"
+2
+$ adb shell dumpsys package com.nondebuggableapp | grep -c "DEBUGGABLE"
+0
 ```
 
 If an application is debuggable, executing application commands is trivial. In the `adb` shell, execute `run-as` by appending the package name and application command to the binary name:
@@ -166,13 +164,13 @@ A few notes about debugging:
 
 ### Overview
 
-Generally, you should provide compiled code with as little explanation as possible. Some metadata, such as debugging information, line numbers, and descriptive function or method names, make the binary or byte-code easier for the reverse engineer to understand, but these aren't needed in a release build and can therefore be safely omitted without impacting the app's functionality.
+Generally, you should provide compiled code with as little explanation as possible. Some metadata, such as debugging information, line numbers, and descriptive function or method names, make the binary or bytecode easier for the reverse engineer to understand, but these aren't needed in a release build and can therefore be safely omitted without impacting the app's functionality.
 
 To inspect native binaries, use a standard tool like `nm` or `objdump` to examine the symbol table. A release build should generally not contain any debugging symbols. If the goal is to obfuscate the library, removing unnecessary dynamic symbols is also recommended.
 
 ### Static Analysis
 
-Symbols are usually stripped during the build process, so you need the compiled byte-code and libraries to make sure that unnecessary metadata has been discarded.
+Symbols are usually stripped during the build process, so you need the compiled bytecode and libraries to make sure that unnecessary metadata has been discarded.
 
 First, find the `nm` binary in your Android NDK and export it (or create an alias).
 
@@ -378,7 +376,7 @@ Exceptions occur when an application gets into an abnormal or error state. Both 
 
 Review the source code to understand the application and identify how it handles different types of errors (IPC communications, remote services invocation, etc.). Here are some examples of things to check at this stage:
 
-- Make sure that the application uses a well-designed and unified scheme to [handle exceptions](https://www.securecoding.cert.org/confluence/pages/viewpage.action?pageId=18581047 "Exceptional Behavior (ERR)").
+- Make sure that the application uses a well-designed and unified scheme to [handle exceptions](https://wiki.sei.cmu.edu/confluence/pages/viewpage.action?pageId=88487665 "Exceptional Behavior (ERR)").
 - Plan for standard `RuntimeException`s (e.g.`NullPointerException`, `IndexOutOfBoundsException`, `ActivityNotFoundException`, `CancellationException`, `SQLException`) by creating proper null checks, bound checks, and the like. An [overview of the available subclasses of `RuntimeException`](https://developer.android.com/reference/java/lang/RuntimeException.html "Runtime Exception Class") can be found in the Android developer documentation. A child of `RuntimeException` should be thrown intentionally, and the intent should be handled by the calling method.
 - Make sure that for every non-runtime `Throwable` there's a proper catch handler, which ends up handling the actual exception properly.
 - When an exception is thrown, make sure that the application has centralized handlers for exceptions that cause similar behavior. This can be a static class. For exceptions specific to the method, provide specific catch blocks.

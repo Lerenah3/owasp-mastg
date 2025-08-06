@@ -13,7 +13,11 @@ Android permissions are classified into four different categories on the basis o
 - **Signature**: This permission is granted only if the requesting app was signed with the same certificate used to sign the app that declared the permission. If the signature matches, the permission will be granted automatically. This permission is granted at installation time. Example: `android.permission.ACCESS_MOCK_LOCATION`.
 - **SystemOrSignature**: This permission is granted only to applications embedded in the system image or signed with the same certificate used to sign the application that declared the permission. Example: `android.permission.ACCESS_DOWNLOAD_MANAGER`.
 
-A list of all permissions is in the [Android developer documentation](https://developer.android.com/guide/topics/permissions/overview.html "Permissions overview").
+A list of all permissions can be found in the [Android developer documentation](https://developer.android.com/guide/topics/permissions/overview.html "Permissions overview") as well as concrete steps on how to:
+
+- [Declare app permissions](https://developer.android.com/training/permissions/declaring) in your app's manifest file.
+- [Request app permissions](https://developer.android.com/training/permissions/requesting) programmatically.
+- [Define a Custom App Permission](https://developer.android.com/guide/topics/permissions/defining) to share your app resources and capabilities with other apps.
 
 #### Android 8.0 (API level 26) Changes
 
@@ -88,9 +92,9 @@ This allows a common capability-style model where user interaction drives ad-hoc
 
 ### Documentation for URI Permissions
 
-- [grantUriPermission](http://bit.ly/2Ke2AQU "grantUriPermission")
-- [revokeUriPermission](http://bit.ly/33ICaP7 "revokeUriPermission")
-- [checkUriPermission](http://bit.ly/2q7YGlO "checkUriPermission")
+- [grantUriPermission](https://developer.android.com/reference/android/content/Context.html#grantUriPermission%28java.lang.String,%20android.net.Uri,%20int%29 "grantUriPermission")
+- [revokeUriPermission](https://developer.android.com/reference/android/content/Context#revokeUriPermission%28android.net.Uri,%20int%29 "revokeUriPermission")
+- [checkUriPermission](https://developer.android.com/reference/android/content/Context#checkUriPermission%28android.net.Uri,%20int,%20int,%20int%29 "checkUriPermission")
 
 #### Custom Permissions
 
@@ -283,66 +287,66 @@ public void onRequestPermissionsResult(int requestCode, //requestCode is what yo
 
 Permissions should be explicitly requested for every needed permission, even if a similar permission from the same group has already been requested. For applications targeting Android 7.1 (API level 25) and older, Android will automatically give an application all the permissions from a permission group, if the user grants one of the requested permissions of that group. Starting with Android 8.0 (API level 26), permissions will still automatically be granted if a user has already granted a permission from the same permission group, but the application still needs to explicitly request the permission. In this case, the `onRequestPermissionsResult` handler will automatically be triggered without any user interaction.
 
-For example if both `READ_EXTERNAL_STORAGE` and `WRITE_EXTERNAL_STORAGE` are listed in the Android Manifest but only permissions are granted for `READ_EXTERNAL_STORAGE`, then requesting `WRITE_LOCAL_STORAGE` will automatically have permissions without user interaction because they are in the same group and not explicitly requested.
+For example if both `READ_EXTERNAL_STORAGE` and `WRITE_EXTERNAL_STORAGE` are listed in the Android Manifest but only permissions are granted for `READ_EXTERNAL_STORAGE`, then requesting `WRITE_EXTERNAL_STORAGE` will automatically have permissions without user interaction because they are in the same group and not explicitly requested.
 
 ### Permission Analysis
 
-Always check whether the application is requesting permissions it actually needs. Make sure that no permissions are requested which are not related to the goal of the app. For instance: a single-player game that requires access to `android.permission.WRITE_SMS`, might not be a good idea.
+Always check whether the application is requesting permissions it actually requires. Make sure that no permissions are requested which are not related to the goal of the app, especially `DANGEROUS` and `SIGNATURE` permissions, since they can affect both the user and the application if mishandled. For instance, it should be suspicious if a single-player game app requires access to `android.permission.WRITE_SMS`.
+
+When analyzing permissions, you should investigate the concrete use case scenarios of the app and always check if there are replacement APIs for any `DANGEROUS` permissions in use. A good example is the [SMS Retriever API](https://developers.google.com/identity/sms-retriever/overview) which streamlines the usage of SMS permissions when performing SMS-based user verification. By using this API an application does not have to declare `DANGEROUS` permissions which is a benefit to both the user and developers of the application, who doesn't have to submit the [Permissions Declaration Form](https://support.google.com/googleplay/android-developer/answer/9214102?hl=en).
 
 ### Dynamic Analysis
 
-Permissions for installed applications can be retrieved with Drozer. The following extract demonstrates how to examine the permissions used by an application and the custom permissions defined by the app:
+Permissions for installed applications can be retrieved with `adb`. The following extract demonstrates how to examine the permissions used by an application.
 
 ```bash
-dz> run app.package.info -a com.android.mms.service
-Package: com.android.mms.service
-  Application Label: MmsService
-  Process Name: com.android.phone
-  Version: 6.0.1
-  Data Directory: /data/user/0/com.android.mms.service
-  APK Path: /system/priv-app/MmsService/MmsService.apk
-  UID: 1001
-  GID: [2001, 3002, 3003, 3001]
-  Shared Libraries: null
-  Shared User ID: android.uid.phone
-  Uses Permissions:
-  - android.permission.RECEIVE_BOOT_COMPLETED
-  - android.permission.READ_SMS
-  - android.permission.WRITE_SMS
-  - android.permission.BROADCAST_WAP_PUSH
-  - android.permission.BIND_CARRIER_SERVICES
-  - android.permission.BIND_CARRIER_MESSAGING_SERVICE
-  - android.permission.INTERACT_ACROSS_USERS
-  Defines Permissions:
-  - None
+$ adb shell dumpsys package com.google.android.youtube
+...
+declared permissions:
+  com.google.android.youtube.permission.C2D_MESSAGE: prot=signature, INSTALLED
+requested permissions:
+  android.permission.INTERNET
+  android.permission.ACCESS_NETWORK_STATE
+install permissions:
+  com.google.android.c2dm.permission.RECEIVE: granted=true
+  android.permission.USE_CREDENTIALS: granted=true
+  com.google.android.providers.gsf.permission.READ_GSERVICES: granted=true  
+...
 ```
 
-When Android applications expose IPC components to other applications, they can define permissions to control which applications can access the components. For communication with a component protected by a `normal` or `dangerous` permission, Drozer can be rebuilt so that it includes the required permission:
+The output shows all permissions using the following categories:
 
-```bash
-$ drozer agent build  --permission android.permission.REQUIRED_PERMISSION
-```
+- **declared permissions**: list of all *custom* permissions.
+- **requested and install permissions**: list of all install-time permissions including *normal* and *signature* permissions.
+- **runtime permissions**: list of all *dangerous* permissions.
 
-Note that this method can't be used for `signature` level permissions because Drozer would need to be signed by the certificate used to sign the target application.
+When doing the dynamic analysis:
 
-When doing the dynamic analysis: validate whether the permission requested by the app is actually necessary for the app. For instance: a single-player game that requires access to `android.permission.WRITE_SMS`, might not be a good idea.
+- [Evaluate](https://developer.android.com/training/permissions/evaluating) whether the app really needs the requested permissions. For instance: a single-player game that requires access to `android.permission.WRITE_SMS`, might not be a good idea.
+- In many cases the app could opt for [alternatives to declaring permissions](https://developer.android.com/training/permissions/evaluating#alternatives), such as:
+  - requesting the `ACCESS_COARSE_LOCATION` permission instead of `ACCESS_FINE_LOCATION`. Or even better not requesting the permission at all, and instead ask the user to enter a postal code.
+  - invoking the `ACTION_IMAGE_CAPTURE` or `ACTION_VIDEO_CAPTURE` intent action instead of requesting the `CAMERA` permission.
+  - using [Companion Device Pairing](https://developer.android.com/guide/topics/connectivity/companion-device-pairing) (Android 8.0 (API level 26) and higher) when pairing with a Bluetooth device instead of declaring the `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATIION`, or `BLUETOOTH_ADMIN` permissions.
+- Use the [Privacy Dashboard](https://developer.android.com/training/permissions/explaining-access#privacy-dashboard) (Android 12 (API level 31) and higher) to verify how the app [explains access to sensitive information](https://developer.android.com/training/permissions/explaining-access).
+
+To obtain detail about a specific permission you can refer to the [Android Documentation](https://developer.android.com/reference/android/Manifest.permission).
 
 ## Testing for Injection Flaws (MSTG-PLATFORM-2)
 
 ### Overview
 
-Android apps can expose functionality through custom URL schemes (which are a part of Intents). They can expose functionality to
+Android apps can expose functionality through deep links (which are a part of Intents). They can expose functionality to:
 
-- other apps (via IPC mechanisms, such as Intents, Binders, Android Shared Memory (ASHMEM), or BroadcastReceivers),
+- other apps (via deep links or other IPC mechanisms, such as Intents or BroadcastReceivers).
 - the user (via the user interface).
 
 None of the input from these sources can be trusted; it must be validated and/or sanitized. Validation ensures processing of data that the app is expecting only. If validation is not enforced, any input can be sent to the app, which may allow an attacker or malicious app to exploit app functionality.
 
 The following portions of the source code should be checked if any app functionality has been exposed:
 
-- Custom URL schemes. Check the test case "Testing Custom URL Schemes" as well for further test scenarios.
-- IPC Mechanisms (Intents, Binders, Android Shared Memory, or BroadcastReceivers). Check the test case "Testing Whether Sensitive Data Is Exposed via IPC Mechanisms" as well for further test scenarios.
-- User interface
+- Deep Links. Check the test case ["Testing Deep Links"](#testing-deep-links-mstg-platform-3) as well for further test scenarios.
+- IPC Mechanisms (Intents, Binders, Android Shared Memory, or BroadcastReceivers). Check the test case ["Testing for Sensitive Functionality Exposure Through IPC"](#testing-for-sensitive-functionality-exposure-through-ipc-mstg-platform-4) as well for further test scenarios.
+- User interface. Check the test case ["Testing for Overlay Attacks"](#testing-for-overlay-attacks-mstg-platform-9).
 
 An example of a vulnerable IPC mechanism is shown below.
 
@@ -426,15 +430,13 @@ SQL injection can be exploited with the following command. Instead of getting th
 # content query --uri content://sg.vp.owasp_mobile.provider.College/students --where "name='Bob') OR 1=1--''"
 ```
 
-Drozer can also be used for dynamic testing.
-
 ## Testing for Fragment Injection (MSTG-PLATFORM-2)
 
 ### Overview
 
 Android SDK offers developers a way to present a [`Preferences activity`](https://developer.android.com/reference/android/preference/PreferenceActivity.html "Preference Activity") to users, allowing the developers to extend and adapt this abstract class.
 
-This abstract class parses the extra data fields of an Intent, in particular, the `PreferenceActivity.EXTRA_SHOW_FRAGMENT(:android:show_fragment)` and `PreferenceActivity.EXTRA_SHOW_FRAGMENT_ARGUMENTS(:android:show_fragment_arguments)` fields.
+This abstract class parses the extra data fields of an Intent, in particular, the `PreferenceActivity.EXTRA_SHOW_FRAGMENT(:android:show_fragment)` and `Preference Activity.EXTRA_SHOW_FRAGMENT_ARGUMENTS(:android:show_fragment_arguments)` fields.
 
 The first field is expected to contain the `Fragment` class name, and the second one is expected to contain the input bundle passed to the `Fragment`.
 
@@ -514,7 +516,7 @@ Intent i = new Intent();
 i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
 i.setClassName("pt.claudio.insecurefragment","pt.claudio.insecurefragment.MainActivity");
 i.putExtra(":android:show_fragment","pt.claudio.insecurefragment.MyFragment");
-Intent intent = i.setData(Uri.parse("https://security.claudio.pt"));
+i.setData(Uri.parse("https://security.claudio.pt"));
 startActivity(i);
 ```
 
@@ -573,184 +575,307 @@ While the default value of `EnableSafeBrowsing` is `true`, some applications mig
 
 A convenient way to dynamically test deep linking is to use Frida or frida-trace and hook the `shouldOverrideUrlLoading`, `shouldInterceptRequest` methods while using the app and clicking on links within the WebView. Be sure to also hook other related [`Uri`](https://developer.android.com/reference/android/net/Uri "Uri class") methods such as `getHost`, `getScheme` or `getPath` which are typically used to inspect the requests and match known patterns or deny lists.
 
-## Testing Custom URL Schemes (MSTG-PLATFORM-3)
+## Testing Deep Links (MSTG-PLATFORM-3)
 
 ### Overview
 
-Android allows you to create two different types of links for your apps: deep links and Android App Links. According to the [Android Developer Documentation](https://developer.android.com/training/app-links#app-links-vs-deep-links "Deep linking and Android App Links"), **deep links** are URLs that take users directly to specific content in your app. You can set up deep links by adding _intent filters_ and extracting data from incoming intents to drive users to the right activity. You can even use any custom scheme prefix such as `myapp`, which will result in the URI prefix "myapp://". These kind of deep links are also referred to as "Custom URL Schemes" and are typically used as a form of inter-app communication where an app can define certain actions (including the corresponding parameters) that can be triggered by other apps.
+*Deep links* are URIs of any scheme that take users directly to specific content in an app. An app can [set up deep links](https://developer.android.com/training/app-links/deep-linking) by adding _intent filters_ on the Android Manifest and extracting data from incoming intents to navigate users to the correct activity.
 
-This method of defining deep links via intent filters has an important issue: any other apps installed on a user's device can declare and try to handle the same intent (typically a custom URL scheme). This is known as **deep link collision** where any arbitrary application can declare control over the exact same URL custom scheme belonging to another application. In recent versions of Android this results in a so-called _disambiguation dialog_ being shown to the user and asking them to select the application that should handle the link. The user could make the mistake of choosing a malicious application instead of the legitimate one.
+Android supports two types of deep links:
 
-Consider the following example of a deep link to an email application:
+- **Custom URL Schemes**, which are deep links that use any custom URL scheme, e.g. `myapp://` (not verified by the OS).
+- **Android App Links** (Android 6.0 (API level 23) and higher), which are deep links that use the `http://` and `https://` schemes and contain the `autoVerify` attribute (which triggers OS verification).
 
-```default
-emailapp://composeEmail/to=your.boss@company.com&message=SEND%20MONEY%20TO%20HERE!&sendImmediately=true
-```
+#### Deep Link Collision
 
-When a victim clicks such a link on a mobile device, a potentially vulnerable application might send an email from the user's original address containing attacker-crafted content. This could lead to financial loss, information disclosure, social damage of the victim, to name a few.
+Using unverified deep links can cause a significant issue- any other apps installed on a user's device can declare and try to handle the same intent, which is known as **deep link collision**. Any arbitrary application can declare control over the exact same deep link belonging to another application.
 
-Another application specific example of deep linking is shown below:
+In recent versions of Android this results in a so-called _disambiguation dialog_ shown to the user that asks them to select the application that should handle the deep link. The user could make the mistake of choosing a malicious application instead of the legitimate one.
 
-```default
-myapp://mybeautifulapp/endpoint?Whatismyname=MyNameIs<svg onload=alert(1)>&MyAgeIs=100
-```
+![OWASP_MSTG](https://developer.android.com/training/app-links/images/app-disambiguation_2x.png)
 
-This deep link could be used in order to abuse some known vulnerabilities already identified within an application (e.g. via reverse engineering). For instance, consider an application running a WebView with JavaScript enabled and rendering the `Whatismyname` parameter. In this concrete case, the deep link payload would trigger reflected cross site scripting within the context of the WebView.
+#### Android App Links
 
-Since Android 6.0 (API Level 23) a developer can opt to define [**Android App Links**](https://developer.android.com/training/app-links/verify-site-associations "Verify Android App Links"), which are verified deep links based on a website URL explicitly registered by the developer. Clicking on an App Link will immediately open the app if it's installed and most importantly, **the disambiguation dialog won't be prompted** and therefore collisions are not possible anymore.
+In order to solve the deep link collision issue, Android 6.0 (API Level 23) introduced [**Android App Links**](https://developer.android.com/training/app-links), which are [verified deep links](https://developer.android.com/training/app-links/verify-site-associations "Verify Android App Links") based on a website URL explicitly registered by the developer. Clicking on an App Link will immediately open the app if it's installed.
 
-There are some key differences from _regular_ deep links to consider:
+There are some key differences from unverified deep links:
 
 - App Links only use `http://` and `https://` schemes, any other custom URL schemes are not allowed.
 - App Links require a live domain to serve a [Digital Asset Links file](https://developers.google.com/digital-asset-links/v1/getting-started "Digital Asset Link") via HTTPS.
-- App links do not suffer from deep link collision since they don't show a disambiguation dialog when a user opens them.
+- App Links do not suffer from deep link collision since they don't show a disambiguation dialog when a user opens them.
 
-For every application, all existing deep links (including App Links) can potentially increase the app attack surface. All deep links must be enumerated and the actions they perform must be well tested, especially all input data which should be deemed to be untrustworthy and thus should be always validated. In addition, also consider the following:
+#### Testing Deep Links
 
-- When using reflection-based persistence type of data processing, check the section "Testing Object Persistence" for Android.
-- Using the data for queries? Make sure you make parameterized queries.
-- Using the data to do authenticated actions? Make sure that the user is in an authenticated state before the data is processed.
-- If tampering of the data will influence the result of the calculations: add an HMAC to the data.
+Any existing deep links (including App Links) can potentially increase the app attack surface. This [includes many risks](https://people.cs.vt.edu/gangwang/deep17.pdf) such as link hijacking, sensitive functionality exposure, etc. The Android version in which the app runs also influences the risk:
 
-### Static Analysis
+- Before Android 12 (API level 31), if the app has any [non-verifiable links](https://developer.android.com/training/app-links/verify-site-associations#fix-errors), it can cause the system to not verify all Android App Links for that app.
+- Starting on Android 12 (API level 31), apps benefit from a [reduced attack surface](https://developer.android.com/training/app-links/deep-linking). A generic web intent resolves to the user's default browser app unless the target app is approved for the specific domain contained in that web intent.
 
-You can easily determine whether deep links (with or without custom URL schemes) are defined just by inspecting the Android Manifest file and looking for [`<intent-filter>` elements](https://developer.android.com/guide/components/intents-filters.html#DataTest "intent-filters - DataTest").
-
-The following example specifies a new deep link with a custom URL scheme called `myapp://`. You should pay special attention to the [attributes](https://developer.android.com/training/app-links/deep-linking "Deep Linking") as they give you clues about how the deep link is used. For example, the category `BROWSABLE` will allow the deep link to be opened within a browser.
-
-```xml
-<activity android:name=".MyUriActivity">
-  <intent-filter>
-      <action android:name="android.intent.action.VIEW" />
-      <category android:name="android.intent.category.DEFAULT" />
-      <category android:name="android.intent.category.BROWSABLE" />
-      <data android:scheme="myapp" android:host="path" />
-  </intent-filter>
-</activity>
-
-```
-
-The following example specifies a new App Link using both the `http://` and `https://` schemes, along with the host and path which will activate it (in this case, the full URL would be `https://www.myapp.com/my/app/path`):
-
-```xml
-<activity android:name=".MyUriActivity">
-  <intent-filter android:autoVerify="true">
-      <action android:name="android.intent.action.VIEW" />
-      <category android:name="android.intent.category.DEFAULT" />
-      <category android:name="android.intent.category.BROWSABLE" />
-      <data android:scheme="http" android:host="www.myapp.com" android:path="/my/app/path" />
-      <data android:scheme="https" android:host="www.myapp.com" android:path="/my/app/path" />
-  </intent-filter>
-</activity>
-
-```
-
-In this example, the `<intent-filter>` includes the flag `android:autoVerify="true"`, which makes it an App Link and causes the Android system to reach out to the declared `android:host` in an attempt to access the [Digital Asset Links file](https://developers.google.com/digital-asset-links/v1/getting-started "Digital Asset Link") in order to [verify the App Links](https://developer.android.com/training/app-links/verify-site-associations "Verify Android App Links").
-
-You must pay special attention to deep links being used to transmit data (which is controlled externally, e.g. by the user or any other app). For example, the following URI could be used to transmit two values `valueOne` and `valueTwo`: `myapp://path/to/what/i/want?keyOne=valueOne&keyTwo=valueTwo`. In order to retrieve the input data and potentially process it, the receiving app could implement a code block similar to the following acting as a data handler method. The way to handle data is the same for both deep links and App Links:
-
-```java
-Intent intent = getIntent();
-if (Intent.ACTION_VIEW.equals(intent.getAction())) {
-  Uri uri = intent.getData();
-  String valueOne = uri.getQueryParameter("keyOne");
-  String valueTwo = uri.getQueryParameter("keyTwo");
-}
-```
-
-The usage of the [`getIntent`](https://developer.android.com/reference/android/content/Intent#getIntent(java.lang.String) "getIntent()")  and [`getData`](https://developer.android.com/reference/android/content/Intent#getData%28%29 "getData()") should be verified in order to understand how the application handles deep link input data, and if it could be subject to any kind of abuse. This general approach of locating these methods can be used across most applications when performing reverse engineering and is key when trying to understand how the application uses deep links and handles any externally provided input data.
-
-### Dynamic Analysis
-
-When testing deep links it's very useful to first build a list of all `<intent-filter>` elements from the AndroidManifest.xml and any custom URL schemes that they might define.
-For each of those deep links you should be able to determine which data they receive, if any. Remember that you might need to perform some reverse engineering first to find out if there are any input parameters that you might apply to the deep link. Sometimes you can even take advantage of other applications which you know that interact with your target app. You can reverse engineer them or use them as triggers, while hooking the data handler methods on the target app side. This way you can discover which ones are triggered and inspect _valid_ or legitimate input parameters.
-
-Depending on the situation, the length of the link and the provided data you can use several methods call deep links. For very short deep links, probably the easiest method is to simply open your mobile browser and type it in the search bar. Another convenient method is to use the [Activity Manager (am) tool](https://developer.android.com/training/app-links/deep-linking#testing-filters "Activity Manager") to send intents within the Android device.
-
-```bash
-$ adb shell am start
-        -W -a android.intent.action.VIEW
-        -d "emailapp://composeEmail/to=your.boss@company.com&message=SEND%20MONEY%20TO%20HERE!&sendImmediately=true" com.emailapp.android
-```
-
-```bash
-$ adb shell am start
-        -W -a android.intent.action.VIEW
-        -d "https://www.myapp.com/my/app/path?dataparam=0" com.myapp.android
-```
-
-Alternatively you can use Drozer's `scanner.activity.browsable` module in order to automatically pull invocable URIs from the AndroidManifest.xml file:
-
-```bash
-dz> run scanner.activity.browsable -a com.google.android.apps.messaging
-Package: com.google.android.apps.messaging
-  Invocable URIs:
-    sms://
-    mms://
-  Classes:
-    com.google.android.apps.messaging.ui.conversation.LaunchConversationActivity
-```
-
-Furthermore, Drozer can then be used to call deep links using the `app.activity.start` module:
-
-```bash
-dz> run app.activity.start  --action android.intent.action.VIEW --data-uri "sms://0123456789"
-```
-
-## Testing for Insecure Configuration of Instant Apps (MSTG-ARCH-1, MSTG-ARCH-7)
-
-### Overview
-
-With [Google Play Instant](https://developer.android.com/topic/google-play-instant/overview "Google Play Instant") you can now create Instant apps. An instant apps can be instantly launched from a browser or the "try now" button from the app store from Android 6.0 (API level 23) onward. They do not require any form of installation. There are a few challenges with an instant app:
-
-- There is a limited amount of size you can have with an instant app (max 10 mb).
-- Only a reduced number of permissions can be used, which are documented at [Android Instant app documentation](https://developer.android.com/topic/google-play-instant/getting-started/instant-enabled-app-bundle?tenant=irina#request-supported-permissions "Permission documentation for Android Instant Apps").
-
-The combination of these can lead to insecure decisions, such as: stripping too much of the authorization/authentication/confidentiality logic from an app, which allows for information leakage.
-
-Note: Instant apps require an App Bundle. App Bundles are described in the "[App Bundles](0x05a-Platform-Overview.md#app-bundles)" section of the "Android Platform Overview" chapter.
+All deep links must be enumerated and verified for correct website association. The actions they perform must be well tested, especially all input data, which should be deemed untrustworthy and thus should always be validated.
 
 ### Static Analysis
 
-Static analysis can be either done after reverse engineering a downloaded instant app, or by analyzing the App Bundle. When you analyze the App Bundle, check the Android Manifest to see whether `dist:module dist:instant="true"` is set for a given module (either the base or a specific module with `dist:module` set). Next, check for the various entry points, which entry points are set (by means of `<data android:path="</PATH/HERE>" />`).
+#### Enumerate Deep Links
 
-Now follow the entry points, like you would do for any Activity and check:
+**Inspecting the Android Manifest:**
 
-- Is there any data retrieved by the app which should require privacy protection of that data? If so, are all required controls in place?
-- Are all communications secured?
-- When you need more functionalities, are the right security controls downloaded as well?
+You can easily determine whether deep links (with or without custom URL schemes) are defined by [decoding the app using apktool](0x05b-Basic-Security_Testing.md#exploring-the-app-package) and inspecting the Android Manifest file looking for [`<intent-filter>` elements](https://developer.android.com/guide/components/intents-filters.html#DataTest "intent-filters - DataTest").
 
-### Dynamic Analysis
+- **Custom Url Schemes**: The following example specifies a deep link with a custom URL scheme called `myapp://`.
 
-There are multiple ways to start the dynamic analysis of your instant app. In all cases, you will first have to install the support for instant apps and add the `ia` executable to your `$PATH`.
-
-The installation of instant app support is taken care off through the following command:
-
-```bash
-$ cd path/to/android/sdk/tools/bin && ./sdkmanager 'extras;google;instantapps'
-```
-
-Next, you have to add `path/to/android/sdk/extras/google/instantapps/ia` to your `$PATH`.
-
-After the preparation, you can test instant apps locally on a device running Android 8.1 (API level 27) or later. The app can be tested in different ways:
-
-- Test the app locally:
-  Deploy the app via Android Studio (and enable the `Deploy as instant app` checkbox in the Run/Configuration dialog) or deploy the app using the following command:
-  
-  ```bash
-  $ ia run output-from-build-command <app-artifact>
+  ```xml
+  <activity android:name=".MyUriActivity">
+    <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="myapp" android:host="path" />
+    </intent-filter>
+  </activity>
   ```
 
-- Test the app using the Play Console:
-  1. Upload your App Bundle to the Google Play Console
-  2. Prepare the uploaded bundle for a release to the internal test track.
-  3. Sign into an internal tester account on a device, then launch your instant experience from either an external prepared link or via the `try now` button in the App store from the testers account.
+- **Deep Links**: The following example specifies a deep Link using both the `http://` and `https://` schemes, along with the host and path that will activate it (in this case, the full URL would be `https://www.myapp.com/my/app/path`):
 
-Now that you can test the app, check whether:
+  ```xml
+  <intent-filter>
+    ...
+    <data android:scheme="http" android:host="www.myapp.com" android:path="/my/app/path" />
+    <data android:scheme="https" android:host="www.myapp.com" android:path="/my/app/path" />
+  </intent-filter>
+  ```
 
-- There are any data which require privacy controls and whether these controls are in place.
-- All communications are sufficiently secured.
-- When you need more functionalities, are the right security controls downloaded as well for these functionalities?
+- **App Links**: If the `<intent-filter>` includes the flag `android:autoVerify="true"`, this causes the Android system to reach out to the declared `android:host` in an attempt to access the [Digital Asset Links file](https://developers.google.com/digital-asset-links/v1/getting-started "Digital Asset Link") in order to [verify the App Links](https://developer.android.com/training/app-links/verify-site-associations "Verify Android App Links"). **A deep link can be considered an App Link only if the verification is successful.**
+
+  ```xml
+  <intent-filter android:autoVerify="true">
+  ```
+
+When listing deep links remember that `<data>` elements within the same `<intent-filter>` are actually merged together to account for all variations of their combined attributes.
+
+```xml
+<intent-filter>
+  ...
+  <data android:scheme="https" android:host="www.example.com" />
+  <data android:scheme="app" android:host="open.my.app" />
+</intent-filter>
+```
+
+It might seem as though this supports only `https://www.example.com` and `app://open.my.app`. However, it actually supports:
+
+- `https://www.example.com`
+- `app://open.my.app`
+- `app://www.example.com`
+- `https://open.my.app`
+
+**Using Dumpsys:**
+
+Use [adb](0x08-Testing-Tools.md#adb) to run the following command that will show all schemes:
+
+```bash
+adb shell dumpsys package com.example.package
+```
+
+**Using Android "App Link Verification" Tester:**
+
+Use the [Android "App Link Verification" Tester](https://github.com/inesmartins/Android-App-Link-Verification-Tester) script to list all deep links (`list-all`) or only app links (`list-applinks`):
+
+```bash
+python3 deeplink_analyser.py -op list-all -apk ~/Downloads/example.apk
+
+.MainActivity
+
+app://open.my.app
+app://www.example.com
+https://open.my.app
+https://www.example.com
+```
+
+#### Check for Correct Website Association
+
+Even if deep links contain the `android:autoVerify="true"` attribute, they must be _actually_ verified in order to be considered App Links. You should test for any possible misconfigurations that might prevent full verification.
+
+##### Automatic Verification
+
+Use the [Android "App Link Verification" Tester](https://github.com/inesmartins/Android-App-Link-Verification-Tester) script to get the verification status for all app links (`verify-applinks`). See an example [here](https://github.com/inesmartins/Android-App-Link-Verification-Tester#use-an-apk-to-check-for-dals-for-all-app-links).
+
+**Only on Android 12 (API level 31) or higher:**
+
+You can use [adb](0x08-Testing-Tools.md#adb) to test the verification logic regardless of whether the app targets Android 12 (API level 31) or not. This feature allows you to:
+
+- [invoke the verification process manually](https://developer.android.com/training/app-links/verify-site-associations#manual-verification).
+- [reset the state of the target app's Android App Links on your device](https://developer.android.com/training/app-links/verify-site-associations#reset-state).
+- [invoke the domain verification process](https://developer.android.com/training/app-links/verify-site-associations#invoke-domain-verification).
+
+You can also [review the verification results](https://developer.android.com/training/app-links/verify-site-associations#review-results). For example:
+
+```bash
+adb shell pm get-app-links com.example.package
+
+com.example.package:
+    ID: 01234567-89ab-cdef-0123-456789abcdef
+    Signatures: [***]
+    Domain verification state:
+      example.com: verified
+      sub.example.com: legacy_failure
+      example.net: verified
+      example.org: 1026
+```
+
+> The same information can be found by running `adb shell dumpsys package com.example.package` (only on Android 12 (API level 31) or higher).
+
+##### Manual Verification
+
+This section details a few, of potentially many, reasons why the verification process failed or was not actually triggered. See more information in the [Android Developers Documentation](https://developer.android.com/training/app-links/verify-site-associations#fix-errors) and in the white paper ["Measuring the Insecurity of Mobile Deep Links of Android"](https://people.cs.vt.edu/gangwang/deep17.pdf).
+
+**Check the [Digital Asset Links file](https://developers.google.com/digital-asset-links/v1/getting-started "Digital Asset Link"):**
+
+- Check for **missing** Digital Asset Links file:
+  - try to find it in the domain's `/.well-known/` path. Example: `https://www.example.com/.well-known/assetlinks.json`
+  - or try `https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=www.example.com`
+- Check for valid Digital Asset Links file **served via HTTP**.
+- Check for **invalid** Digital Asset Links files served via HTTPS. For example:
+  - the file contains invalid JSON.
+  - the file doesn't include the target app's package.
+
+**Check for Redirects:**
+
+To enhance the app security, the system [doesn't verify any Android App Links](https://developer.android.com/training/app-links/verify-site-associations#fix-errors) for an app if the server sets a redirect such as `http://example.com` to `https://example.com` or `example.com` to `www.example.com`.
+
+**Check for Subdomains:**
+
+If an intent filter lists multiple hosts with different subdomains, there must be a valid Digital Asset Links file on each domain. For example, the following intent filter includes `www.example.com` and `mobile.example.com` as accepted intent URL hosts.
+
+```xml
+<application>
+  <activity android:name=”MainActivity”>
+    <intent-filter android:autoVerify="true">
+      <action android:name="android.intent.action.VIEW" />
+      <category android:name="android.intent.category.DEFAULT" />
+      <category android:name="android.intent.category.BROWSABLE" />
+      <data android:scheme="https" />
+      <data android:scheme="https" />
+      <data android:host="www.example.com" />
+      <data android:host="mobile.example.com" />
+    </intent-filter>
+  </activity>
+</application>
+```
+
+In order for the deep links to correctly register, a valid Digital Asset Links file must be published at both `https://www.example.com/.well-known/assetlinks.json` and `https://mobile.example.com/.well-known/assetlinks.json`.
+
+**Check for Wildcards:**
+
+If the hostname includes a wildcard (such as `*.example.com`), you should be able to find a valid Digital Asset Links file at the root hostname: `https://example.com/.well-known/assetlinks.json`.
+
+#### Check the Handler Method
+
+Even if the deep link is correctly verified, the logic of the handler method should be carefully analyzed. Pay special attention to **deep links being used to transmit data** (which is controlled externally by the user or any other app).
+
+First, obtain the name of the Activity from the Android Manifest `<activity>` element which defines the target `<intent-filter>` and search for usage of [`getIntent`](https://developer.android.com/reference/android/content/Intent#getIntent(java.lang.String) "getIntent()") and [`getData`](https://developer.android.com/reference/android/content/Intent#getData%28%29 "getData()"). This general approach of locating these methods can be used across most applications when performing reverse engineering and is key when trying to understand how the application uses deep links and handles any externally provided input data and if it could be subject to any kind of abuse.
+
+The following example is a snippet from an exemplary Kotlin app [decompiled with jadx](0x05c-Reverse-Engineering-and-Tampering.md#decompiling-java-code). From the [static analysis](#enumerate-deep-links) we know that it supports the deep link `deeplinkdemo://load.html/` as part of `com.mstg.deeplinkdemo.WebViewActivity`.
+
+```java
+// snippet edited for simplicity
+public final class WebViewActivity extends AppCompatActivity {
+    private ActivityWebViewBinding binding;
+
+    public void onCreate(Bundle savedInstanceState) {
+        Uri data = getIntent().getData();
+        String html = data == null ? null : data.getQueryParameter("html");
+        Uri data2 = getIntent().getData();
+        String deeplink_url = data2 == null ? null : data2.getQueryParameter("url");
+        View findViewById = findViewById(R.id.webView);
+        if (findViewById != null) {
+            WebView wv = (WebView) findViewById;
+            wv.getSettings().setJavaScriptEnabled(true);
+            if (deeplink_url != null) {
+                wv.loadUrl(deeplink_url);
+            ...
+```
+
+You can simply follow the `deeplink_url` String variable and see the result from the `wv.loadUrl` call. This means the attacker has full control of the URL being loaded to the WebView (as shown above has [JavaScript enabled](#testing-javascript-execution-in-webviews-mstg-platform-5).
+
+The same WebView might be also rendering an attacker controlled parameter. In that case, the following deep link payload would trigger [Reflected Cross-Site Scripting (XSS)](0x04h-Testing-Code-Quality.md#cross-site-scripting-flaws-mstg-platform-2) within the context of the WebView:
+
+```default
+deeplinkdemo://load.html?attacker_controlled=<svg onload=alert(1)>
+```
+
+But there are many other possibilities. Be sure to check the following sections to learn more about what to expect and how to test different scenarios:
+
+- ["Cross-Site Scripting Flaws (MSTG-PLATFORM-2)"](0x04h-Testing-Code-Quality.md#cross-site-scripting-flaws-mstg-platform-2).
+- ["Injection Flaws (MSTG-ARCH-2 and MSTG-PLATFORM-2)"](0x04h-Testing-Code-Quality.md#injection-flaws-mstg-arch-2-and-mstg-platform-2).
+- ["Testing Object Persistence (MSTG-PLATFORM-8)"](#testing-object-persistence-mstg-platform-8).
+- ["Testing for URL Loading in WebViews (MSTG-PLATFORM-2)"](#testing-for-url-loading-in-webviews-mstg-platform-2)
+- ["Testing JavaScript Execution in WebViews (MSTG-PLATFORM-5)"](#testing-javascript-execution-in-webviews-mstg-platform-5)
+- ["Testing WebView Protocol Handlers (MSTG-PLATFORM-6)"](#testing-webview-protocol-handlers-mstg-platform-6)
+
+In addition, we recommend to search and read public reports (search term: `"deep link*"|"deeplink*" site:https://hackerone.com/reports/`). For example:
+
+- ["[HackerOne#1372667] Able to steal bearer token from deep link"](https://hackerone.com/reports/1372667)
+- ["[HackerOne#401793] Insecure deeplink leads to sensitive information disclosure"](https://hackerone.com/reports/401793)
+- ["[HackerOne#583987] Android app deeplink leads to CSRF in follow action"](https://hackerone.com/reports/583987)
+- ["[HackerOne#637194] Bypass of biometrics security functionality is possible in Android application"](https://hackerone.com/reports/637194)
+- ["[HackerOne#341908] XSS via Direct Message deeplinks"](https://hackerone.com/reports/341908)
+
+### Dynamic Analysis
+
+Here you will use the list of deep links from the static analysis to iterate and determine each handler method and the processed data, if any. You will first start a [Frida](0x08-Testing-Tools.md#frida) hook and then begin invoking the deep links.
+
+The following example assumes a target app that accepts this deep link: `deeplinkdemo://load.html`. However, we don't know the corresponding handler method yet, nor the parameters it potentially accepts.
+
+**[Step 1] Frida Hooking:**
+
+You can use the script ["Android Deep Link Observer"](https://codeshare.frida.re/@leolashkevych/android-deep-link-observer/) from [Frida CodeShare](0x08-Testing-Tools.md#frida-codeshare) to monitor all invoked deep links triggering a call to `Intent.getData`. You can also use the script as a base to include your own modifications depending on the use case at hand. In this case we [included the stack trace](https://github.com/FrenchYeti/frida-trick/blob/master/README.md) in the script since we are interested in the method which calls `Intent.getData`.
+
+**[Step 2] Invoking Deep Links:**
+
+Now you can invoke any of the deep links using [adb](0x08-Testing-Tools.md#adb) and the [Activity Manager (am)](https://developer.android.com/training/app-links/deep-linking#testing-filters "Activity Manager") which will send intents within the Android device. For example:
+
+```bash
+adb shell am start -W -a android.intent.action.VIEW -d "deeplinkdemo://load.html/?message=ok#part1"
+
+Starting: Intent { act=android.intent.action.VIEW dat=deeplinkdemo://load.html/?message=ok }
+Status: ok
+LaunchState: WARM
+Activity: com.mstg.deeplinkdemo/.WebViewActivity
+TotalTime: 210
+WaitTime: 217
+Complete
+```
+
+> This might trigger the disambiguation dialog when using the "http/https" schema or if other installed apps support the same custom URL schema. You can include the package name to make it an explicit intent.
+
+This invocation will log the following:
+
+```bash
+[*] Intent.getData() was called
+[*] Activity: com.mstg.deeplinkdemo.WebViewActivity
+[*] Action: android.intent.action.VIEW
+
+[*] Data
+- Scheme: deeplinkdemo://
+- Host: /load.html
+- Params: message=ok
+- Fragment: part1
+
+[*] Stacktrace:
+
+android.content.Intent.getData(Intent.java)
+com.mstg.deeplinkdemo.WebViewActivity.onCreate(WebViewActivity.kt)
+android.app.Activity.performCreate(Activity.java)
+...
+com.android.internal.os.ZygoteInit.main(ZygoteInit.java)
+```
+
+In this case we've crafted the deep link including arbitrary parameters (`?message=ok`) and fragment (`#part1`). We still don't know if they are being used. The information above reveals useful information that you can use now to reverse engineer the app. See the section ["Check the Handler Method"](#check-the-handler-method) to learn about things you should consider.
+
+- File: `WebViewActivity.kt`
+- Class: `com.mstg.deeplinkdemo.WebViewActivity`
+- Method: `onCreate`
+  
+> Sometimes you can even take advantage of other applications that you know interact with your target app. You can reverse engineer the app, (e.g. to extract all strings and filter those which include the target deep links, `deeplinkdemo:///load.html` in the previous case), or use them as triggers, while hooking the app as previously discussed.
 
 ## Testing for Sensitive Functionality Exposure Through IPC (MSTG-PLATFORM-4)
 
@@ -915,83 +1040,151 @@ smsManager.sendTextMessage(textPhoneno, null, textMessage, null, null);
 }
 ```
 
-BroadcastReceivers should use the `android:permission` attribute;  otherwise, other applications can invoke them. You can use `Context.sendBroadcast(intent, receiverPermission);` to specify permissions a receiver must have to [read the broadcast](https://goo.gl/ViRYPC "SendBroadcast"). You can also set an explicit application package name that limits the components this Intent will resolve to. If left as the default value (null), all components in all applications will be considered. If non-null, the Intent can match only the components in the given application package.
+BroadcastReceivers should use the `android:permission` attribute;  otherwise, other applications can invoke them. You can use `Context.sendBroadcast(intent, receiverPermission);` to specify permissions a receiver must have to [read the broadcast](https://developer.android.com/reference/android/content/Context#sendBroadcast%28android.content.Intent,%20java.lang.String%29 "SendBroadcast"). You can also set an explicit application package name that limits the components this Intent will resolve to. If left as the default value (null), all components in all applications will be considered. If non-null, the Intent can match only the components in the given application package.
 
 ### Dynamic Analysis
 
-You can enumerate IPC components with Drozer. To list all exported IPC components, use the module `app.package.attacksurface`:
+You can enumerate IPC components with [MobSF](0x08-Testing-Tools.md#mobsf "MobSF"). To list all exported IPC components, upload the APK file and the components collection will be displayed in the following screen:
 
-```bash
-dz> run app.package.attacksurface com.mwr.example.sieve
-Attack Surface:
-  3 activities exported
-  0 broadcast receivers exported
-  2 content providers exported
-  2 services exported
-    is debuggable
-```
+<img src="Images/Chapters/0x05h/MobSF_Show_Components.png" width="100%" />
 
 #### Content Providers
 
 The "Sieve" application implements a vulnerable content provider. To list the content providers exported by the Sieve app, execute the following command:
 
 ```bash
-dz> run app.provider.finduri com.mwr.example.sieve
-Scanning com.mwr.example.sieve...
-content://com.mwr.example.sieve.DBContentProvider/
-content://com.mwr.example.sieve.FileBackupProvider/
-content://com.mwr.example.sieve.DBContentProvider
-content://com.mwr.example.sieve.DBContentProvider/Passwords/
-content://com.mwr.example.sieve.DBContentProvider/Keys/
-content://com.mwr.example.sieve.FileBackupProvider
-content://com.mwr.example.sieve.DBContentProvider/Passwords
-content://com.mwr.example.sieve.DBContentProvider/Keys
+$ adb shell dumpsys package com.mwr.example.sieve | grep -Po "Provider{[\w\d\s\./]+}" | sort -u
+Provider{34a20d5 com.mwr.example.sieve/.FileBackupProvider}
+Provider{64f10ea com.mwr.example.sieve/.DBContentProvider}
 ```
 
-Content providers with names like "Passwords" and "Keys" are prime suspects for sensitive information leaks. After all, it wouldn't be good if sensitive keys and passwords could simply be queried from the provider!
+Once identified, you can use [jadx](0x08-Testing-Tools.md#jadx "jadx") to reverse engineer the app and analyze the source code of the exported content providers to identify potential vulnerabilities.
+
+To identify the corresponding class of a content provider, use the following information:
+
+- Package Name: `com.mwr.example.sieve`.
+- Content Provider Class Name: `DBContentProvider`.
+
+When analyzing the class `com.mwr.example.sieve.DBContentProvider`, you'll see that it contains several URIs:
+
+```java
+package com.mwr.example.sieve;
+...
+public class DBContentProvider extends ContentProvider {
+    public static final Uri KEYS_URI = Uri.parse("content://com.mwr.example.sieve.DBContentProvider/Keys");
+    public static final Uri PASSWORDS_URI = Uri.parse("content://com.mwr.example.sieve.DBContentProvider/Passwords");
+...
+}
+```
+
+Use the following commands to call the content provider using the identified URIs:
 
 ```bash
-dz> run app.provider.query content://com.mwr.example.sieve.DBContentProvider/Keys
-Permission Denial: reading com.mwr.example.sieve.DBContentProvider uri content://com.mwr.example.sieve.DBContentProvider/Keys from pid=4268, uid=10054 requires com.mwr.example.sieve.READ_KEYS, or grantUriPermission()
+$ adb shell content query --uri content://com.mwr.example.sieve.DBContentProvider/Keys/
+Row: 0 Password=1234567890AZERTYUIOPazertyuiop, pin=1234
+
+$ adb shell content query --uri content://com.mwr.example.sieve.DBContentProvider/Passwords/
+Row: 0 _id=1, service=test, username=test, password=BLOB, email=t@tedt.com
+Row: 1 _id=2, service=bank, username=owasp, password=BLOB, email=user@tedt.com
+
+$ adb shell content query --uri content://com.mwr.example.sieve.DBContentProvider/Passwords/ --projection email:username:password --where 'service=\"bank\"'
+Row: 0 email=user@tedt.com, username=owasp, password=BLOB
 ```
 
-```bash
-dz> run app.provider.query content://com.mwr.example.sieve.DBContentProvider/Keys/
-| Password          | pin  |
-| SuperPassword1234 | 1234 |
-```
-
-This content provider can be accessed without permission.
-
-```bash
-dz> run app.provider.update content://com.mwr.example.sieve.DBContentProvider/Keys/ --selection "pin=1234" --string Password "newpassword"
-dz> run app.provider.query content://com.mwr.example.sieve.DBContentProvider/Keys/
-| Password    | pin  |
-| newpassword | 1234 |
-```
+You are able now to retrieve all database entries (see all lines starting with "Row:" in the output).
 
 #### Activities
 
-To list activities exported by an application, use the module `app.activity.info`. Specify the target package with `-a` or omit the option to target all apps on the device:
+To list activities exported by an application, you can use the following command and focus on `activity` elements:
 
 ```bash
-dz> run app.activity.info -a com.mwr.example.sieve
-Package: com.mwr.example.sieve
-  com.mwr.example.sieve.FileSelectActivity
-    Permission: null
-  com.mwr.example.sieve.MainLoginActivity
-    Permission: null
-  com.mwr.example.sieve.PWList
-    Permission: null  
+$ aapt d xmltree sieve.apk AndroidManifest.xml
+...
+E: activity (line=32)
+  A: android:label(0x01010001)=@0x7f05000f
+  A: android:name(0x01010003)=".FileSelectActivity" (Raw: ".FileSelectActivity")
+  A: android:exported(0x01010010)=(type 0x12)0xffffffff
+  A: android:finishOnTaskLaunch(0x01010014)=(type 0x12)0xffffffff
+  A: android:clearTaskOnLaunch(0x01010015)=(type 0x12)0xffffffff
+  A: android:excludeFromRecents(0x01010017)=(type 0x12)0xffffffff
+E: activity (line=40)
+  A: android:label(0x01010001)=@0x7f050000
+  A: android:name(0x01010003)=".MainLoginActivity" (Raw: ".MainLoginActivity")
+  A: android:excludeFromRecents(0x01010017)=(type 0x12)0xffffffff
+  A: android:launchMode(0x0101001d)=(type 0x10)0x2
+  A: android:windowSoftInputMode(0x0101022b)=(type 0x11)0x14
+  E: intent-filter (line=46)
+    E: action (line=47)
+      A: android:name(0x01010003)="android.intent.action.MAIN" (Raw: "android.intent.action.MAIN")
+    E: category (line=49)
+      A: android:name(0x01010003)="android.intent.category.LAUNCHER" (Raw: "android.intent.category.LAUNCHER")
+E: activity (line=52)
+  A: android:label(0x01010001)=@0x7f050009
+  A: android:name(0x01010003)=".PWList" (Raw: ".PWList")
+  A: android:exported(0x01010010)=(type 0x12)0xffffffff
+  A: android:finishOnTaskLaunch(0x01010014)=(type 0x12)0xffffffff
+  A: android:clearTaskOnLaunch(0x01010015)=(type 0x12)0xffffffff
+  A: android:excludeFromRecents(0x01010017)=(type 0x12)0xffffffff
+E: activity (line=60)
+  A: android:label(0x01010001)=@0x7f05000a
+  A: android:name(0x01010003)=".SettingsActivity" (Raw: ".SettingsActivity")
+  A: android:finishOnTaskLaunch(0x01010014)=(type 0x12)0xffffffff
+  A: android:clearTaskOnLaunch(0x01010015)=(type 0x12)0xffffffff
+  A: android:excludeFromRecents(0x01010017)=(type 0x12)0xffffffff
+...
 ```
 
-Enumerating activities in the vulnerable password manager "Sieve" shows that the activity `com.mwr.example.sieve.PWList` is exported with no required permissions. It is possible to use the module `app.activity.start` to launch this activity.
+You can identify an exported activity using one of the following properties:
+
+- It have an `intent-filter` sub declaration.
+- It have the attribute `android:exported` to `0xffffffff`.
+
+You can also use [jadx](0x08-Testing-Tools.md#jadx "jadx") to identify exported activities in the file `AndroidManifest.xml` using the criteria described above:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.mwr.example.sieve">
+...
+  <!-- This activity is exported via the attribute "exported" -->
+  <activity android:name=".FileSelectActivity" android:exported="true" />
+   <!-- This activity is exported via the "intent-filter" declaration  -->
+  <activity android:name=".MainLoginActivity">
+    <intent-filter>
+      <action android:name="android.intent.action.MAIN"/>
+      <category android:name="android.intent.category.LAUNCHER"/>
+    </intent-filter>
+  </activity>
+  <!-- This activity is exported via the attribute "exported" -->
+  <activity android:name=".PWList" android:exported="true" />
+  <!-- Activities below are not exported -->
+  <activity android:name=".SettingsActivity" />
+  <activity android:name=".AddEntryActivity"/>
+  <activity android:name=".ShortLoginActivity" />
+  <activity android:name=".WelcomeActivity" />
+  <activity android:name=".PINActivity" />
+...
+</manifest>
+```
+
+Enumerating activities in the vulnerable password manager "Sieve" shows that the following activities are exported:
+
+- `.MainLoginActivity`
+- `.PWList`
+- `.FileSelectActivity`
+
+Use the command below to launch an activity:
 
 ```bash
-dz> run app.activity.start --component com.mwr.example.sieve com.mwr.example.sieve.PWList
+# Start the activity without specifying an action or an category
+$ adb shell am start -n com.mwr.example.sieve/.PWList
+Starting: Intent { cmp=com.mwr.example.sieve/.PWList }
+
+# Start the activity indicating an action (-a) and an category (-c)
+$ adb shell am start -n "com.mwr.example.sieve/.MainLoginActivity" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
+Starting: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=com.mwr.example.sieve/.MainLoginActivity }
 ```
 
-Since the activity is called directly in this example, the login form protecting the password manager would be bypassed, and the data contained within the password manager could be accessed.
+Since the activity `.PWList` is called directly in this example, you can use it to bypass the login form protecting the password manager, and access the data contained within the password manager.
 
 #### Services
 
@@ -1021,21 +1214,97 @@ Got a reply from com.mwr.example.sieve/com.mwr.example.sieve.AuthService:
 
 #### Broadcast Receivers
 
-Broadcasts can be enumerated via the Drozer module `app.broadcast.info`. The target package should be specified via the `-a` parameter:
+To list broadcast receivers exported by an application, you can use the following command and focus on `receiver` elements:
 
 ```bash
-dz> run app.broadcast.info -a com.android.insecurebankv2
-Package: com.android.insecurebankv2
-  com.android.insecurebankv2.MyBroadCastReceiver
-    Permission: null
+$ aapt d xmltree InsecureBankv2.apk AndroidManifest.xml
+...
+E: receiver (line=88)
+  A: android:name(0x01010003)="com.android.insecurebankv2.MyBroadCastReceiver" (Raw: "com.android.insecurebankv2.MyBroadCastReceiver")
+  A: android:exported(0x01010010)=(type 0x12)0xffffffff
+  E: intent-filter (line=91)
+    E: action (line=92)
+      A: android:name(0x01010003)="theBroadcast" (Raw: "theBroadcast")
+E: receiver (line=119)
+  A: android:name(0x01010003)="com.google.android.gms.wallet.EnableWalletOptimizationReceiver" (Raw: "com.google.android.gms.wallet.EnableWalletOptimizationReceiver")
+  A: android:exported(0x01010010)=(type 0x12)0x0
+  E: intent-filter (line=122)
+    E: action (line=123)
+      A: android:name(0x01010003)="com.google.android.gms.wallet.ENABLE_WALLET_OPTIMIZATION" (Raw: "com.google.android.gms.wallet.ENABLE_WALLET_OPTIMIZATION")
+...
 ```
 
-In the example app "Android Insecure Bank", one broadcast receiver is exported without requiring any permissions, indicating that we can formulate an intent to trigger the broadcast receiver. When testing broadcast receivers, you must also use static analysis to understand the functionality of the broadcast receiver, as we did before.
+You can identify an exported broadcast receiver using one of the following properties:
 
-With the Drozer module `app.broadcast.send`, we can formulate an intent to trigger the broadcast and send the password to a phone number within our control:
+- It has an `intent-filter` sub declaration.
+- It has the attribute `android:exported` set to `0xffffffff`.
+
+You can also use [jadx](0x08-Testing-Tools.md#jadx "jadx") to identify exported broadcast receivers in the file `AndroidManifest.xml` using the criteria described above:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.android.insecurebankv2">
+...
+  <!-- This broadcast receiver is exported via the attribute "exported" as well as the "intent-filter" declaration -->
+  <receiver android:name="com.android.insecurebankv2.MyBroadCastReceiver" android:exported="true">
+    <intent-filter>
+      <action android:name="theBroadcast"/>
+    </intent-filter>
+  </receiver>
+  <!-- This broadcast receiver is NOT exported because the attribute "exported" is explicitly set to false -->
+  <receiver android:name="com.google.android.gms.wallet.EnableWalletOptimizationReceiver" android:exported="false">
+    <intent-filter>
+      <action android:name="com.google.android.gms.wallet.ENABLE_WALLET_OPTIMIZATION"/>
+    </intent-filter>
+  </receiver>
+...
+</manifest>
+```
+
+The above example from the vulnerable banking application [InsecureBankv2](0x08-Testing-Tools.md#android "Vulnerable applications for Android") shows that only the broadcast receiver named `com.android.insecurebankv2.MyBroadCastReceiver` is exported.
+
+Now that you know that there is an exported broadcast receiver, you can dive deeper and reverse engineer the app using [jadx](0x08-Testing-Tools.md#jadx "jadx"). This will allow you to analyze the source code searching for potential vulnerabilities that you could later try to exploit. The source code of the exported broadcast receiver is the following:
+
+```java
+package com.android.insecurebankv2;
+...
+public class MyBroadCastReceiver extends BroadcastReceiver {
+    public static final String MYPREFS = "mySharedPreferences";
+    String usernameBase64ByteString;
+
+    public void onReceive(Context context, Intent intent) {
+        String phn = intent.getStringExtra("phonenumber");
+        String newpass = intent.getStringExtra("newpass");
+        if (phn != null) {
+            try {
+                SharedPreferences settings = context.getSharedPreferences("mySharedPreferences", 1);
+                this.usernameBase64ByteString = new String(Base64.decode(settings.getString("EncryptedUsername", (String) null), 0), "UTF-8");
+                String decryptedPassword = new CryptoClass().aesDeccryptedString(settings.getString("superSecurePassword", (String) null));
+                String textPhoneno = phn.toString();
+                String textMessage = "Updated Password from: " + decryptedPassword + " to: " + newpass;
+                SmsManager smsManager = SmsManager.getDefault();
+                System.out.println("For the changepassword - phonenumber: " + textPhoneno + " password is: " + textMessage);
+                smsManager.sendTextMessage(textPhoneno, (String) null, textMessage, (PendingIntent) null, (PendingIntent) null);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("Phone number is null");
+        }
+    }
+}
+```
+
+As you can see in the source code, this broadcast receiver expects two parameters named `phonenumber` and `newpass`. With this information you can now try to exploit this broadcast receiver by sending events to it using custom values:
 
 ```bash
-dz>  run app.broadcast.send --action theBroadcast --extra string phonenumber 07123456789 --extra string newpass 12345
+# Send an event with the following properties:
+# Action is set to "theBroadcast"
+# Parameter "phonenumber" is set to the string "07123456789"
+# Parameter "newpass" is set to the string "12345"
+$ adb shell am broadcast -a theBroadcast --es phonenumber "07123456789" --es newpass "12345"
+Broadcasting: Intent { act=theBroadcast flg=0x400000 (has extras) }
+Broadcast completed: result=0
 ```
 
 This generates the following SMS:
@@ -1061,6 +1330,20 @@ Extra: phonenumber=07123456789 (java.lang.String)
 Extra: newpass=12345 (java.lang.String)`
 ```
 
+You can also use the following command to sniff the intents. However, the content of the extras passed will not be displayed:
+
+```bash
+$ adb shell dumpsys activity broadcasts | grep "theBroadcast"
+BroadcastRecord{fc2f46f u0 theBroadcast} to user 0
+Intent { act=theBroadcast flg=0x400010 (has extras) }
+BroadcastRecord{7d4f24d u0 theBroadcast} to user 0
+Intent { act=theBroadcast flg=0x400010 (has extras) }
+45: act=theBroadcast flg=0x400010 (has extras)
+46: act=theBroadcast flg=0x400010 (has extras)
+121: act=theBroadcast flg=0x400010 (has extras)
+144: act=theBroadcast flg=0x400010 (has extras)
+```
+
 ## Testing JavaScript Execution in WebViews (MSTG-PLATFORM-5)
 
 ### Overview
@@ -1077,7 +1360,7 @@ setContentView(webview);
 webview.loadUrl("https://www.owasp.org/");
 ```
 
-Various settings can be applied to the WebView (activating/deactivating JavaScript is one example). JavaScript is disabled by default for WebViews and must be explicitly enabled. Look for the method [`setJavaScriptEnabled`](https://goo.gl/G9spo2 "setJavaScriptEnabled in WebViews") to check for JavaScript activation.
+Various settings can be applied to the WebView (activating/deactivating JavaScript is one example). JavaScript is disabled by default for WebViews and must be explicitly enabled. Look for the method [`setJavaScriptEnabled`](https://developer.android.com/reference/android/webkit/WebSettings#setJavaScriptEnabled%28boolean%29 "setJavaScriptEnabled in WebViews") to check for JavaScript activation.
 
 ```java
 webview.getSettings().setJavaScriptEnabled(true);
@@ -1089,7 +1372,7 @@ This allows the WebView to interpret JavaScript. It should be enabled only if ne
 - JavaScript and HTML are loaded locally, from within the app data directory or from trusted web servers only.
 - The user cannot define which sources to load by means of loading different resources based on a user provided input.
 
-To remove all JavaScript source code and locally stored data, clear the WebView's cache with [`clearCache`](https://goo.gl/7dnhdi "clearCache in WebViews") when the app closes.
+To remove all JavaScript source code and locally stored data, clear the WebView's cache with [`clearCache`](https://developer.android.com/reference/android/webkit/WebView#clearCache%28boolean%29 "clearCache in WebViews") when the app closes.
 
 Devices running platforms older than Android 4.4 (API level 19) use a version of WebKit that has several security issues. As a workaround, the app must confirm that WebView objects [display only trusted content](https://developer.android.com/training/articles/security-tips.html#WebView "WebView Best Practices") if the app runs on these devices.
 
@@ -1103,7 +1386,7 @@ Dynamic Analysis depends on operating conditions. There are several ways to inje
 
 To address these attack vectors, check the following:
 
-- All functions offered by the endpoint should be free of [stored XSS](https://goo.gl/6MWZkb "Stored Cross-Site Scripting").
+- All functions offered by the endpoint should be free of [stored XSS](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/02-Testing_for_Stored_Cross_Site_Scripting "Stored Cross-Site Scripting").
 - Only files that are in the app data directory should be rendered in a WebView (see test case "Testing for Local File Inclusion in WebViews").
 
 - The HTTPS communication must be implemented according to best practices to avoid MITM attacks. This means:
@@ -1128,13 +1411,13 @@ WebViews can load remote content from an endpoint, but they can also load local 
 Check the source code for WebView usage. The following [WebView settings](https://developer.android.com/reference/android/webkit/WebSettings.html "WebView Settings") control resource access:
 
 - `setAllowContentAccess`: Content URL access allows WebViews to load content from a content provider installed on the system, which is enabled by default .
-- `setAllowFileAccess`: Enables and disables file access within a WebView. File access is enabled by default. Note that this enables and disables [file system access](https://developer.android.com/reference/android/webkit/WebSettings.html#setAllowFileAccess%28boolean%29 "File Access in WebView") only. Asset and resource access is unaffected and accessible via `file:///android_asset` and `file:///android_res`.
+- `setAllowFileAccess`: Enables and disables file access within a WebView. The default value is `true` when targeting Android 10 (API level 29) and below and `false` for Android 11 (API level 30) and above. Note that this enables and disables [file system access](https://developer.android.com/reference/android/webkit/WebSettings.html#setAllowFileAccess%28boolean%29 "File Access in WebView") only. Asset and resource access is unaffected and accessible via `file:///android_asset` and `file:///android_res`.
 - `setAllowFileAccessFromFileURLs`: Does or does not allow JavaScript running in the context of a file scheme URL to access content from other file scheme URLs. The default value is `true` for Android 4.0.3 - 4.0.4 (API level 15) and below and `false` for Android 4.1 (API level 16) and above.
 - `setAllowUniversalAccessFromFileURLs`: Does or does not allow JavaScript running in the context of a file scheme URL to access content from any origin. The default value is `true` for Android 4.0.3 - 4.0.4 (API level 15) and below and `false` for Android 4.1 (API level 16) and above.
 
 If one or more of the above methods is/are activated, you should determine whether the method(s) is/are really necessary for the app to work properly.
 
-If a WebView instance can be identified, find out whether local files are loaded with the [`loadURL`](https://goo.gl/4vdSQM "loadURL in WebView") method.
+If a WebView instance can be identified, find out whether local files are loaded with the [`loadURL`](https://developer.android.com/reference/android/webkit/WebView.html#loadUrl%28java.lang.String%29 "loadURL in WebView") method.
 
 ```java
 WebView = new WebView(this);
@@ -1302,7 +1585,7 @@ String json = gson.toJson(obj);
 #### XML
 
 There are several ways to serialize the contents of an object to XML and back. Android comes with the `XmlPullParser` interface which allows for easily maintainable XML parsing. There are two implementations within Android: `KXmlParser` and `ExpatPullParser`. The [Android Developer Guide](https://developer.android.com/training/basics/network-ops/xml#java "Instantiate the parser") provides a great write-up on how to use them. Next, there are various alternatives, such as a `SAX` parser that comes with the Java runtime. For more information, see [a blogpost from ibm.com](https://www.ibm.com/developerworks/opensource/library/x-android/index.html "Working with XML on Android on IBM Developer").
-Similarly to JSON, XML has the issue of working mostly String based, which means that String-type secrets will be harder to remove from memory. XML data can be stored anywhere (database, files), but do need additional protection in case of secrets or information that should not be changed. See the chapter "[Data Storage on Android](0x05d-Testing-Data-Storage.md)" for more details. As stated earlier: the true danger in XML lies in the [XML eXternal Entity (XXE)](https://www.owasp.org/index.php/XML_External_Entity_%28XXE%29_Processing "XML eXternal Entity attack (XXE)") attack as it might allow for reading external data sources that are still accessible within the application.
+Similarly to JSON, XML has the issue of working mostly String based, which means that String-type secrets will be harder to remove from memory. XML data can be stored anywhere (database, files), but do need additional protection in case of secrets or information that should not be changed. See the chapter "[Data Storage on Android](0x05d-Testing-Data-Storage.md)" for more details. As stated earlier: the true danger in XML lies in the [XML eXternal Entity (XXE)](https://owasp.org/www-community/vulnerabilities/XML_External_Entity_(XXE)_Processing "XML eXternal Entity attack (XXE)") attack as it might allow for reading external data sources that are still accessible within the application.
 
 #### ORM
 
@@ -1467,7 +1750,7 @@ Screen overlay attacks occur when a malicious application manages to put itself 
 
 There are several attacks affecting different Android versions including:
 
-- [**Tapjacking**](https://blog.devknox.io/tapjacking-android-prevent/ "What is Tapjacking in Android and How to Prevent It") (Android 6.0 (API level 23) and lower) abuses the screen overlay feature of Android listening for taps and intercepting any information being passed to the underlying activity.
+- [**Tapjacking**](https://medium.com/devknoxio/what-is-tapjacking-in-android-and-how-to-prevent-it-50140e57bf44 "What is Tapjacking in Android and How to Prevent It") (Android 6.0 (API level 23) and lower) abuses the screen overlay feature of Android listening for taps and intercepting any information being passed to the underlying activity.
 - [**Cloak & Dagger**](https://cloak-and-dagger.org/ "Cloak & Dagger") attacks affect apps targeting Android 5.0 (API level 21) to Android 7.1 (API level 25). They abuse one or both of the `SYSTEM_ALERT_WINDOW` ("draw on top") and `BIND_ACCESSIBILITY_SERVICE` ("a11y") permissions that, in case the app is installed from the Play Store, the users do not need to explicitly grant and for which they are not even notified.
 - [**Toast Overlay**](https://unit42.paloaltonetworks.com/unit42-android-toast-overlay-attack-cloak-and-dagger-with-no-permissions/ "Android Toast Overlay Attack: Cloak and Dagger with No Permissions") is quite similar to Cloak & Dagger but do not require specific Android permissions to be granted by users. It was closed with CVE-2017-0752 on Android 8.0 (API level 26).
 
@@ -1494,7 +1777,7 @@ As a final note, always remember to properly check the API level that app is tar
 Abusing this kind of vulnerability on a dynamic manner can be pretty challenging and very specialized as it closely depends on the target Android version. For instance, for versions up to Android 7.0 (API level 24) you can use the following APKs as a proof of concept to identify the existence of the vulnerabilities.  
 
 - [Tapjacking POC](https://github.com/FSecureLABS/tapjacking-poc "Tapjacking POC"): This APK creates a simple overlay which sits on top of the testing application.
-- [Invisible Keyboard](https://github.com/DEVizzi/Invisible-Keyboard, "Invisible Keyboard"): This APK creates multiple overlays on the keyboard to capture keystrokes. This is one of the exploit demonstrated in Cloak and Dagger attacks.
+- [Invisible Keyboard](https://github.com/DEVizzi/Invisible-Keyboard "Invisible Keyboard"): This APK creates multiple overlays on the keyboard to capture keystrokes. This is one of the exploit demonstrated in Cloak and Dagger attacks.
 
 ## Testing enforced updating (MSTG-ARCH-9)
 
@@ -1536,7 +1819,7 @@ if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
 
 
 
-                     //...Part 3: check if update completed succesfully
+                     //...Part 3: check if update completed successfully
  @Override
  public void onActivityResult(int requestCode, int resultCode, Intent data) {
    if (myRequestCode == MY_REQUEST_CODE) {
@@ -1586,30 +1869,6 @@ Finally, in part 4: you can see that for every entry point in the application, a
 In order to test for proper updating: try downloading an older version of the application with a security vulnerability, either by a release from the developers or by using a third party app-store.
 Next, verify whether or not you can continue to use the application without updating it. If an update prompt is given, verify if you can still use the application by canceling the prompt or otherwise circumventing it through normal application usage. This includes validating whether the backend will stop calls to vulnerable backends and/or whether the vulnerable app-version itself is blocked by the backend.
 Lastly, see if you can play with the version number of a man-in-the-middled app and see how the backend responds to this (and if it is recorded at all for instance).
-
-## Testing App Notifications (MSTG-STORAGE-4 and MSTG-STORAGE-7)
-
-### Overview
-
-Android allows for applications to create [notifications](https://developer.android.com/guide/topics/ui/notifiers/notifications "Notifications Overview"), a form of message that is displayed by the Android system outside of the application's UI. This is useful for applications to display small messages to the user while they use other applications on their device.
-
-It is important to understand that notifications should never be considered private. When a notification is handled by the Android system it is broadcasted system-wide and any application running with a [NotificationListenerService](https://developer.android.com/reference/kotlin/android/service/notification/NotificationListenerService "NotificationListenerService") can listen for these notifications to receive them in full and may handle them however it wants.
-
-There are many known malware samples such as [Joker](https://research.checkpoint.com/2020/new-joker-variant-hits-google-play-with-an-old-trick/ "Joker Malware"), and [Alien](https://www.threatfabric.com/blogs/alien_the_story_of_cerberus_demise.html "Alien Malware") which abuses the `NotificationListenerService` to listen for notifications on the device and then send them to attacker-controlled C2 infrastructure. Commonly this is done in order to listen for two-factor authentication (2FA) codes that appear as notifications on the device which are then sent to the attacker. A safer alternative for the user would be to use a 2FA application that does not generate notifications.
-
-Furthermore there are a number of apps on the Google Play Store that provide notification logging, which basically logs locally any notifications on the Android system. This highlights that notifications are in no way private on Android and accessible by any other app on the device.
-
-For this reason all notification usage should be inspected for confidential or high risk information that could be used by malicious applications.
-
-### Static Analysis
-
-When statically assessing an application, it is recommended to search for any usage of the `NotificationManager` class which might be an indication of some form of notification management. If the class is being used, the next step would be to understand how the application is [generating the notifications](https://developer.android.com/training/notify-user/build-notification#SimpleNotification "Create a Notification").
-
-These code locations can be fed into the Dynamic Analysis section below, providing an idea of where in the application notifications may be dynamically generated.
-
-### Dynamic Analysis
-
-To identify the usage of notifications run through the entire application and all its available functions looking for ways to trigger any notifications. Take note of any notifications that appear while using the application and examine if they contain any confidential information. Consider that you may need to perform actions outside of the application in order to trigger certain notifications.
 
 ## References
 
@@ -1677,6 +1936,3 @@ To identify the usage of notifications run through the entire application and al
 - MSTG-PLATFORM-7: "If native methods of the app are exposed to a WebView, verify that the WebView only renders JavaScript contained within the app package."
 - MSTG-PLATFORM-8: "Object serialization, if any, is implemented using safe serialization APIs."
 - MSTG-ARCH-9: "A mechanism for enforcing updates of the mobile app exists."
-
-- MSTG-STORAGE-4: "No sensitive data is shared with third parties unless it is a necessary part of the architecture."
-- MSTG-STORAGE-7: "No sensitive data, such as passwords or pins, is exposed through the user interface."

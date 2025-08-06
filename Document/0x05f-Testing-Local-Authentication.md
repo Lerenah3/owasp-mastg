@@ -97,7 +97,7 @@ The Android platform offers three different classes for biometric authentication
 - Android 9 (API level 28) and higher: `BiometricPrompt`
 - Android 6.0 (API level 23) and higher: `FingerprintManager` (deprecated in Android 9 (API level 28))
 
-<img src="Images/Chapters/0x05f/biometricprompt-architecture.png" width="500" />
+<img src="Images/Chapters/0x05f/biometricprompt-architecture.png" width="100%" />
 
 The class [`BiometricManager`](https://developer.android.com/reference/kotlin/android/hardware/biometrics/BiometricManager "BiometricManager") can be used to verify if biometric hardware is available on the device and if it's configured by the user. If that's the case, the class [`BiometricPrompt`](https://developer.android.com/reference/kotlin/android/hardware/biometrics/BiometricPrompt "BiometricPrompt") can be used to show a system-provided biometric dialog.
 
@@ -111,7 +111,7 @@ A very detailed overview and explanation of the Biometric API on Android was pub
 
 Android 6.0 (API level 23) introduced public APIs for authenticating users via fingerprint, but is deprecated in Android 9 (API level 28). Access to the fingerprint hardware is provided through the [`FingerprintManager`](https://developer.android.com/reference/android/hardware/fingerprint/ "FingerprintManager") class. An app can request fingerprint authentication by instantiating a `FingerprintManager` object and calling its `authenticate` method. The caller registers callback methods to handle possible outcomes of the authentication process (i.e. success, failure, or error). Note that this method doesn't constitute strong proof that fingerprint authentication has actually been performed - for example, the authentication step could be patched out by an attacker, or the "success" callback could be overloaded using dynamic instrumentation.
 
-You can achieve better security by using the fingerprint API in conjunction with the Android `KeyGenerator` class. With this approach, a symmetric key is stored in the Android KeyStore and unlocked with the user's fingerprint. For example, to enable user access to a remote service, an AES key is created which encrypts the authentication token. By calling `setUserAuthenticationRequired(true)` when creating the key, it is ensured that the user must re-authenticate to retrieve it. The encrypted authentication token can then be saved directly on the the device (e.g. via Shared Preferences). This design is a relatively safe way to ensure the user actually entered an authorized fingerprint.
+You can achieve better security by using the fingerprint API in conjunction with the Android `KeyGenerator` class. With this approach, a symmetric key is stored in the Android KeyStore and unlocked with the user's fingerprint. For example, to enable user access to a remote service, an AES key is created which encrypts the authentication token. By calling `setUserAuthenticationRequired(true)` when creating the key, it is ensured that the user must re-authenticate to retrieve it. The encrypted authentication token can then be saved directly on the device (e.g. via Shared Preferences). This design is a relatively safe way to ensure the user actually entered an authorized fingerprint.
 
 An even more secure option is using asymmetric cryptography. Here, the mobile app creates an asymmetric key pair in the KeyStore and enrolls the public key on the server backend. Later transactions are then signed with the private key and verified by the server using the public key.
 
@@ -306,9 +306,7 @@ Make sure that fingerprint authentication and/or other types of biometric authen
 
 ### Dynamic Analysis
 
-F-Secure Labs has published a very detailed [blog article about the Android KeyStore and Biometric authentication](https://labs.f-secure.com/blog/how-secure-is-your-android-keystore-authentication "How Secure is your Android Keystore Authentication ?").
-
-As part of this research two Frida scripts were released, which can be used to test insecure implementations of biometric authentication and try to bypass them:
+Please take a look at this detailed [blog article about the Android KeyStore and Biometric authentication](https://labs.f-secure.com/blog/how-secure-is-your-android-keystore-authentication "How Secure is your Android Keystore Authentication?"). This research includes two Frida scripts which can be used to test insecure implementations of biometric authentication and try to bypass them:
 
 - [Fingerprint bypass](https://github.com/FSecureLABS/android-keystore-audit/blob/master/frida-scripts/fingerprint-bypass.js "Fingerprint Bypass"): This Frida script will bypass authentication when the `CryptoObject` is not used in the `authenticate` method of the `BiometricPrompt` class. The authentication implementation relies on the callback `onAuthenticationSucceded` being called.
 - [Fingerprint bypass via exception handling](https://github.com/FSecureLABS/android-keystore-audit/blob/master/frida-scripts/fingerprint-bypass-via-exception-handling.js "Fingerprint bypass via exception handling"): This Frida script will attempt to bypass authentication when the `CryptoObject` is used, but used in an incorrect way. The detailed explanation can be found in the section "Crypto Object Exception Handling" in the blog post.

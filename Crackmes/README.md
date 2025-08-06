@@ -28,8 +28,10 @@ This app is compatible with Android 4.4 and up.
 - [Solution using static analysis](../Document/0x05c-Reverse-Engineering-and-Tampering.md#reviewing-decompiled-java-code "Solution using static analysis")
 - [Solution using jdb](../Document/0x05c-Reverse-Engineering-and-Tampering.md#debugging-with-jdb "Solution using jdb")
 - [Solution using Frida by Eduardo Novella](https://enovella.github.io/android/reverse/2017/05/18/android-owasp-crackmes-level-1.html "Solution by Eduardo Novella")
-- [Solution using Xposed by sh3llc0d3r](http://sh3llc0d3r.com/owasp-uncrackable-android-level1/ "Solution by sh3llc0d3r")
+- [Solution using Xposed by sh3llc0d3r](https://web.archive.org/web/20210124161121/http://sh3llc0d3r.com/owasp-uncrackable-android-level1/ "Solution by sh3llc0d3r")
 - [Solution using RMS by @mobilesecurity_ (video)](https://youtu.be/P6rNPkM2DdY "Solution by @mobilesecurity_")
+- [Solution using static analysis by Eduardo Vasconcelos](https://tereresecurity.wordpress.com/2021/03/03/write-up-uncrackable-level-1/ "Solution by Eduardo Vasconcelos")
+- [Solution using Frida by Davide Cioccia](https://1337.dcodx.com/mobile-security/owasp-mstg-crackme-1-writeup-android "Solution by Davide Cioccia")
 
 ### [UnCrackable App for Android Level 2](Android/Level_02 "Android level 2")
 
@@ -52,8 +54,10 @@ This app is compatible with Android 4.4 and up.
 
 - [Solution using Frida and radare2 by c0dmtr1x](https://www.codemetrix.net/hacking-android-apps-with-frida-3/ "Solution by c0dmtr1x").
 - [Solution using Frida by Eduardo Novella](https://enovella.github.io/android/reverse/2017/05/20/android-owasp-crackmes-level-2.html "Solution by Eduardo Novella").
-- [Solution using patches by sh3llc0d3r](http://sh3llc0d3r.com/owasp-uncrackable-android-level2/ "Solution by sh3llc0d3r").
+- [Solution using patches by sh3llc0d3r](https://web.archive.org/web/20210124162744/http://sh3llc0d3r.com/owasp-uncrackable-android-level2/ "Solution by sh3llc0d3r").
 - [Solution using RMS by @mobilesecurity_ (video)](https://youtu.be/xRQVljerl0A "Solution by @mobilesecurity_").
+- [Solution using static analysis and Ghidra by Eduardo Vasconcelos](https://tereresecurity.wordpress.com/2021/03/23/write-up-uncrackable-level-2/ "Solution by Eduardo Vasconcelos").
+- [Solution using Ghidra and Frida by Davide Cioccia](https://1337.dcodx.com/mobile-security/owasp-mstg-crackme-2-writeup-android "Solution by Davide Cioccia")
 
 ### [UnCrackable App for Android Level 3](Android/Level_03 "Android level 3")
 
@@ -75,9 +79,10 @@ $ adb install UnCrackable-Level3.apk
 #### Solutions
 
 - [Solution using Frida by Eduardo Novella](https://enovella.github.io/android/reverse/2017/05/20/android-owasp-crackmes-level-3.html "Solution by Eduardo Novella").
-- [Solution using patches by sh3llc0d3r](http://sh3llc0d3r.com/owasp-uncrackable-android-level3/ "Solution by sh3llc0d3r").
+- [Solution using patches by sh3llc0d3r](https://web.archive.org/web/20210124164453/http://sh3llc0d3r.com/owasp-uncrackable-android-level3/ "Solution by sh3llc0d3r").
+- [Solution using Ghidra and Frida by Davide Cioccia](https://1337.dcodx.com/mobile-security/owasp-mstg-crackme-3-writeup-android "Solution by Davide Cioccia")
 
-### [UnCrackable App for Android Level 4: Radare2 Pay v1.0](Android/Level_04 "Android level 4")
+### [UnCrackable App for Android Level 4: Radare2 Pay v0.9](Android/Level_04 "Android level 4")
 
 The Radare2 community always dreamed with its decentralized and free currency to allow r2 fans to make payments in places and transfer money between r2 users. A debug version has been developed and it will be supported very soon in many stores and websites. Can you verify that this is cryptographically unbreakable?
 
@@ -95,10 +100,19 @@ Hint: Run the APK in a non-tampered device to play a bit with the app.
 This app is compatible with Android 4.4 and up.
 
 ```shell
-$ adb install UnCrackable-Level4.apk
+$ adb install r2pay-v0.9.apk
 ```
 
-#### Solutions
+#### Versions
+- `v0.9` - Release for `OWASP MSTG`.
+  - Source code is available and the compilation has been softened in many ways to make the challenge easier and more enjoyable for newcomers.
+- `v1.0` - Release for `R2con CTF 2020`.
+  - No source code is available and many extra protections are in place.
+
+#### Solutions R2pay v0.9
+- Not yet
+
+#### Solutions R2pay v1.0
 
 - [Solution bypassing protections using Frida/QBDI by Romain Thomas](https://www.romainthomas.fr/post/20-09-r2con-obfuscated-whitebox-part1/ "Solution by Romain Thomas").
 - [Solution whitebox key recovery using SCAMarvels by Romain Thomas](https://www.romainthomas.fr/post/20-09-r2con-obfuscated-whitebox-part2/ "Solution by Romain Thomas").
@@ -116,13 +130,18 @@ A brand new Android app sparks your interest. Of course, you are planning to pur
 Copy the binary to your Android device and run using the shell.
 
 ```shell
-  $ adb push validate /data/local/tmp
-  [100%] /data/local/tmp/validate
-  $ adb shell chmod 755 /data/local/tmp/validate
-  $ adb shell /data/local/tmp/validate
-  Usage: ./validate <serial>
-  $ adb shell /data/local/tmp/validate 1234
-  Incorrect serial (wrong format).
+$ adb push validate /data/local/tmp
+[100%] /data/local/tmp/validate
+$ adb shell chmod 755 /data/local/tmp/validate
+$ adb shell /data/local/tmp/validate
+Usage: ./validate <serial>
+$ adb shell /data/local/tmp/validate 1234
+Incorrect serial (wrong format).
+$ adb shell /data/local/tmp/validate JACE6ACIARNAAIIA
+Entering base32_decode
+Outlen = 10
+Entering check_license
+Product activation passed. Congratulations!
 ```
 
 #### Solutions
@@ -150,6 +169,7 @@ Note: The IPA is signed with an Enterprise distribution certificate. You'll need
 - [Multiple solutions by David Weinstein](https://www.nowsecure.com/blog/2017/04/27/owasp-ios-crackme-tutorial-frida/ "Solutions by David Weinstein").
 - [Solution by Ryan Teoh](http://www.ryantzj.com/cracking-owasp-mstg-ios-crackme-the-uncrackable.html "Solution by Ryan Teoh").
 - [Solution with Angr by Vikas Gupta](https://serializethoughts.com/2019/10/28/solving-mstg-crackme-angr "Solving iOS UnCrackable 1 Crackme Without Using an iOS Device").
+- [Solution by Pietro Oliva](https://0xsysenter.github.io/ios/reversing/arm64/mobile/ipa/frida/instrumentation/crackme/2021/01/09/ios-apps-reverse-engineering-solving-crackmes-part-1.html "Solution by Pietro Oliva").
 
 ### [UnCrackable App for iOS Level 2](iOS/Level_02 "iOS level 2")
 
@@ -170,6 +190,7 @@ Note: The IPA is signed with an Enterprise distribution certificate. You'll need
 #### Solutions
 
 - [Solution by Ryan Teoh](http://www.ryantzj.com/cracking-owasp-mstg-ios-crackme-the-uncrackable.html "Solution by Ryan Teoh").
+- [Solution by Pietro Oliva](https://0xsysenter.github.io/ios/reversing/arm64/mobile/ipa/frida/instrumentation/crackme/2021/02/08/ios-apps-reverse-engineering-solving-crackmes-part-2.html "Solution by Pietro Oliva").
 
 ## MSTG Hacking Playground
 

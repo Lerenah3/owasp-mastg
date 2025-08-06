@@ -41,21 +41,21 @@ $ pip install frida-tools
 Or refer to the [installation page](https://www.frida.re/docs/installation/ "Frida Installation") for more details.
 
 Code can be injected in several ways. For example, Xposed permanently modifies the Android app loader, providing hooks for running your own code every time a new process is started.
-In contrast, Frida implements code injection by writing code directly into process memory. When attached to a running app:
+In contrast, Frida implements code injection by writing code directly into the process memory. When attached to a running app:
 
 - Frida uses ptrace to hijack a thread of a running process. This thread is used to allocate a chunk of memory and populate it with a mini-bootstrapper.
 - The bootstrapper starts a fresh thread, connects to the Frida debugging server that's running on the device, and loads a shared library that contains the Frida agent (`frida-agent.so`).
 - The agent establishes a bi-directional communication channel back to the tool (e.g. the Frida REPL or your custom Python script).
 - The hijacked thread resumes after being restored to its original state, and process execution continues as usual.
 
-<img src="Images/Chapters/0x04/frida.png" alt="Frida Architecture" width="500" />
+<img src="Images/Chapters/0x04/frida.png" width="100%" />
 
 - *Frida Architecture, source: [https://www.frida.re/docs/hacking/](https://www.frida.re/docs/hacking "Frida - Hacking")*
 
 Frida offers three modes of operation:
 
 1. Injected: this is the most common scenario when frida-server is running as a daemon in the iOS or Android device. frida-core is exposed over TCP, listening on localhost:27042 by default. Running in this mode is not possible on devices that are not rooted or jailbroken.
-2. Embedded: this is the case when your device is not rooted nor jailbroken (you cannot use ptrace as an unprivileged user), you're responsible for the injection of the [frida-gadget](https://www.frida.re/docs/gadget/ "Frida Gadget") library by embedding it into your app.
+2. Embedded: this is the case when your device is not rooted nor jailbroken (you cannot use ptrace as an unprivileged user), you're responsible for the injection of the [frida-gadget](https://www.frida.re/docs/gadget/ "Frida Gadget") library by embedding it into your app, manually or via third-party tools such as [Objection](#objection).
 3. Preloaded: similar to `LD_PRELOAD` or `DYLD_INSERT_LIBRARIES`. You can configure the frida-gadget to run autonomously and load a script from the filesystem (e.g. path relative to where the Gadget binary resides).
 
 Independently of the chosen mode, you can make use of the [Frida JavaScript APIs](https://www.frida.re/docs/javascript-api/ "Frida JavaScript APIs") to interact with the running process and its memory. Some of the fundamental APIs are:
@@ -68,8 +68,8 @@ Independently of the chosen mode, you can make use of the [Frida JavaScript APIs
 Frida also provides a couple of simple tools built on top of the Frida API and available right from your terminal after installing frida-tools via pip. For instance:
 
 - You can use the [Frida CLI](https://www.frida.re/docs/frida-cli/ "Frida CLI") (`frida`) for quick script prototyping and try/error scenarios.
-- [`frida-ps`](https://www.frida.re/docs/frida-ps/ "frida-ps") to obtain a list of all apps (or processes) running on the device including their names and PDIs.
-- [`frida-ls-devices`](https://www.frida.re/docs/frida-ls-devices/ "frida-ls-devices") to list your connected devices;
+- [`frida-ps`](https://www.frida.re/docs/frida-ps/ "frida-ps") to obtain a list of all apps (or processes) running on the device including their names, identifiers and PIDs.
+- [`frida-ls-devices`](https://www.frida.re/docs/frida-ls-devices/ "frida-ls-devices") to list your connected devices running Frida servers or agents.
 - [`frida-trace`](https://www.frida.re/docs/frida-trace/ "frida-trace") to quickly trace methods that are part of an iOS app or that are implemented inside an Android native library.
 
 In addition, you'll also find several open source Frida-based tools, such as:
@@ -397,7 +397,7 @@ In the end, it is up to you to decide where would you like to work with the data
 
 ### Frida CodeShare
 
-[Frida CodeShare](https://codeshare.frida.re/ "Frida CodeShare") contains a collection of ready-to-run Frida scripts which can enormously help when performing concrete tasks both on Android as on iOS as well as also serve as inspiration to build your own scripts. Two representative examples are:
+[Frida CodeShare](https://codeshare.frida.re/ "Frida CodeShare") is a repository containing a collection of ready-to-run Frida scripts which can enormously help when performing concrete tasks both on Android as on iOS as well as also serve as inspiration to build your own scripts. Two representative examples are:
 
 - Universal Android SSL Pinning Bypass with Frida - <https://codeshare.frida.re/@pcipolloni/universal-android-ssl-pinning-bypass-with-frida/>
 - ObjC method observer - <https://codeshare.frida.re/@mrmacete/objc-method-observer/>
@@ -414,27 +414,27 @@ Ghidra is an open source software reverse engineering (SRE) suite of tools devel
 
 Start Ghidra using `ghidraRun` (\*nix) or `ghidraRun.bat` (Windows), depending on the platform you are on. Once Ghidra is fired up, create a new project by specifying the project directory. You will be greeted by a window as shown below:
 
-<img src="Images/Chapters/0x04c/Ghidra_new_project.png" alt="Ghidra New Project" width="450" />
+<img src="Images/Chapters/0x04c/Ghidra_new_project.png" width="100%" />
 
 In your new **Active Project** you can import an app binary by going to **File** -> **Import File** and choosing the desired file.
 
-<img src="Images/Chapters/0x04c/Ghidra_import_binary.png" alt="Ghidra import binary" width="450" />
+<img src="Images/Chapters/0x04c/Ghidra_import_binary.png" width="100%" />
 
 If the file can be properly processed, Ghidra will show meta-information about the binary before starting the analysis.
 
-<img src="Images/Chapters/0x04c/Ghidra_elf_import.png" alt="Ghidra ELF file import" width="300" />
+<img src="Images/Chapters/0x04c/Ghidra_elf_import.png" width="100%" />
 
 To get the disassembled code for the binary file chosen above, double click the imported file from the **Active Project** window. Click **yes** and **analyze** for auto-analysis on the subsequent windows. Auto-analysis will take some time depending on the size of the binary, the progress can be tracked in the bottom right corner of the code browser window. Once auto-analysis is completed you can start exploring the binary.
 
-<img src="Images/Chapters/0x04c/Ghidra_main_window.png" alt="Ghidra Main Window" />
+<img src="Images/Chapters/0x04c/Ghidra_main_window.png" width="100%" />
 
 The most important windows to explore a binary in Ghidra are the **Listing** (Disassembly) window, the **Symbol Tree** window and the **Decompiler** window, which shows the decompiled version of the function selected for disassembly. The **Display Function Graph** option shows control flow graph of the selected function.
 
-<img src="Images/Chapters/0x04c/Ghidra_function_graph.png" alt="Ghidra Function Graph View" />
+<img src="Images/Chapters/0x04c/Ghidra_function_graph.png" width="100%" />
 
 There are many other functionalities available in Ghidra and most of them can be explored by opening the **Window** menu. For example, if you want to examine the strings present in the binary, open the **Defined Strings** option. We will discuss other advanced functionalities while analyzing various binaries for Android and iOS platforms in the coming chapters.
 
-<img src="Images/Chapters/0x04c/Ghidra_string_window.png" alt="Ghidra strings window" />
+<img src="Images/Chapters/0x04c/Ghidra_string_window.png" width="100%" />
 
 ### Hopper (Commercial Tool)
 
@@ -477,7 +477,7 @@ Once you have MobSF up and running you can open it in your browser by navigating
 
 After MobSF is done with its analysis, you will receive a one-page overview of all the tests that were executed. The page is split up into multiple sections giving some first hints on the attack surface of the application.
 
-<img src="Images/Chapters/0x05b/mobsf_android.png" alt="MobSF for Android" />
+<img src="Images/Chapters/0x05b/mobsf_android.png" width="100%" />
 
 The following is displayed:
 
@@ -501,7 +501,7 @@ Once you have MobSF up and running you can open it in your browser by navigating
 
 After MobSF is done with its analysis, you will receive a one-page overview of all the tests that were executed. The page is split up into multiple sections giving some first hints on the attack surface of the application.
 
-<img src="Images/Chapters/0x06b/mobsf_ios.png" alt="MobSF for iOS" />
+<img src="Images/Chapters/0x06b/mobsf_ios.png" width="100%" />
 
 The following is displayed:
 
@@ -980,27 +980,41 @@ And of course you can also use the disassembler capabilities of r2 and print the
 
 r2 commands normally accept options (see `pd?`), e.g. you can limit the opcodes displayed by appending a number ("N") to the command `pd N`.
 
-<img src="Images/Chapters/0x05b/r2_pd_10.png" width="600" />
+<img src="Images/Chapters/0x05b/r2_pd_10.png" width="100%" />
 
 Instead of just printing the disassembly to the console you may want to enter the so-called **Visual Mode** by typing `V`.
 
-<img src="Images/Chapters/0x05b/r2_visualmode_hex.png" width="600" />
+<img src="Images/Chapters/0x05b/r2_visualmode_hex.png" width="100%" />
 
 By default, you will see the hexadecimal view. By typing `p` you can switch to different views, such as the disassembly view:
 
-<img src="Images/Chapters/0x05b/r2_visualmode_disass.png" width="600" />
+<img src="Images/Chapters/0x05b/r2_visualmode_disass.png" width="100%" />
 
 Radare2 offers a **Graph Mode** that is very useful to follow the flow of the code. You can access it from the Visual Mode by typing `V`:
 
-<img src="Images/Chapters/0x05b/r2_graphmode.png" width="600" />
+<img src="Images/Chapters/0x05b/r2_graphmode.png" width="100%" />
 
-This is only a selection of some radare2 commands to start getting some basic information from Android binaries. Radare2 is very powerful and has dozens of commands that you can find on the [radare2 command documentation](https://radare.gitbooks.io/radare2book/basic_commands/intro.html "radare2 command documentation"). Radare2 will be used throughout the guide for different purposes such as reversing code, debugging or performing binary analysis. We will also use it in combination with other frameworks, especially Frida (see the r2frida section for more information).
+This is only a selection of some radare2 commands to start getting some basic information from Android binaries. Radare2 is very powerful and has dozens of commands that you can find on the [radare2 command documentation](https://book.rada.re/basic_commands/intro.html "radare2 command documentation"). Radare2 will be used throughout the guide for different purposes such as reversing code, debugging or performing binary analysis. We will also use it in combination with other frameworks, especially Frida (see the r2frida section for more information).
 
-Please refer to the chapter "[Tampering and Reverse Engineering on Android](0x05c-Reverse-Engineering-and-Tampering.md)" for more detailed use of radare2 on Android, especially when analyzing native libraries. You may also want to read the [official radare2 book](https://radare.gitbooks.io/radare2book/content/ "Radare2 book").
+Please refer to the chapter "[Tampering and Reverse Engineering on Android](0x05c-Reverse-Engineering-and-Tampering.md)" for more detailed use of radare2 on Android, especially when analyzing native libraries. You may also want to read the [official radare2 book](https://book.rada.re/ "Radare2 book").
 
 #### Radare2 (iOS)
 
-[Radare2](https://github.com/radare/radare2 "Radare2") is a complete framework for reverse-engineering and analyzing binaries. The installation instructions can be found in the GitHub repository. To learn more on radare2 you may want to read the [official radare2 book](https://radare.gitbooks.io/radare2book/content/ "Radare2 book").
+[Radare2](https://github.com/radare/radare2 "Radare2") is a complete framework for reverse-engineering and analyzing binaries. The installation instructions can be found in the GitHub repository. To learn more on radare2 you may want to read the [official radare2 book](https://book.rada.re/ "Radare2 book").
+
+### RMS Runtime Mobile Security
+
+[RMS - Runtime Mobile Security](https://github.com/m0bilesecurity/RMS-Runtime-Mobile-Security "Runtime Mobile Security (RMS)") is a runtime mobile application analysis toolkit, supporting Android and iOS Apps. It offers a web GUI and is written in Python.
+
+It's leveraging a running Frida server on a jailbroken device with the following out-of-box functionalities:
+
+- Execute popular Frida scripts
+- Execute custom Frida scripts
+- Dump all the loaded classes and relative methods
+- Hook methods on the fly
+- (Android) Monitor Android APIs and usage of native APIs
+
+The installation instructions and "how-to guide" of RMS can be found in the [Readme of the Github repo](https://github.com/m0bilesecurity/RMS-Runtime-Mobile-Security "Github Repo of RMS").
 
 ## Tools for Android
 
@@ -1074,7 +1088,7 @@ Local Android SDK installations are managed via Android Studio. Create an empty 
 
 An overview of all Android codenames, their version number and API levels can be found in the [Android Developer Documentation](https://source.android.com/setup/start/build-numbers "Codenames, Tags, and Build Numbers").
 
-<img src="Images/Chapters/0x05c/sdk_manager.jpg" alt="SDK Manager" />
+<img src="Images/Chapters/0x05c/sdk_manager.jpg" width="100%" />
 
 Installed SDKs are on the following paths:
 
@@ -1132,6 +1146,10 @@ This should copy apkx to `/usr/local/bin`. See section "[Decompiling Java Code](
 
 Busybox combines multiple common Unix utilities into a small single executable. The utilities included generally have fewer options than their full-featured GNU counterparts, but are sufficient enough to provide a complete environment on a small or embedded system. Busybox can be installed on a rooted device by downloading the Busybox application from Google Play Store. You can also download the binary directly from the [Busybox website](https://busybox.net "Busybox Website"). Once downloaded, make an `adb push busybox /data/local/tmp` to have the executable available on your phone. A quick overview of how to install and use Busybox can be found in the [Busybox FAQ](https://busybox.net/FAQ.html#getting_started "Busybox FAQ").
 
+### Bytecode Viewer
+
+[Bytecode Viewer](https://bytecodeviewer.com/ "Bytecode Viewer") (BCV) is a free and open source Java decompiler framework running on all operating systems. It is a versatile tool which can be used to decompile Android apps, view APK resources (via apktool) and easily edit APKs (via Smali/Baksmali). Apart from APKs, also DEX, Java Class files and Java Jars can be viewed. One of its major features is the support for multiple Java bytecode decompilers under one GUI. BCV currently includes the Procyon, CFR, Fernflower, Krakatau, and JADX-Core decompilers. These decompilers have different strengths and can be easily leveraged while using BCV, especially when dealing with obfuscated programs.
+
 ### Drozer
 
 [Drozer](https://github.com/FSecureLABS/drozer "Drozer on GitHub") is an Android security assessment framework that allows you to search for security vulnerabilities in apps and devices by assuming the role of a third-party app interacting with the other application's IPC endpoints and the underlying OS.
@@ -1146,7 +1164,7 @@ You can refer to [drozer GitHub page](https://github.com/FSecureLABS/drozer "Dro
 
 Before you can start using drozer, you'll also need the drozer agent that runs on the Android device itself. Download the latest drozer agent [from the GitHub releases page](https://github.com/FSecureLABS/drozer/releases/ "drozer GitHub releases") and install it with `adb install drozer.apk`.
 
-Once the setup is completed you can start a session to an emulator or a device connected per USB by running `adb forward tcp:31415 tcp:31415` and `drozer console connect`. This is called direct mode and you can see the full instructions in the [User Guide in section "Starting a Session"](https://labs.f-secure.com/assets/BlogFiles/mwri-drozer-user-guide-2015-03-23.pdf "Starting a Session"). An alternative is to run Drozer in infrastructure mode, where, you are running a drozer server that can handle multiple consoles and agents, and routes sessions between them. You can find the details of how to setup drozer in this mode in the ["Infrastructure Mode"](https://labs.f-secure.com/assets/BlogFiles/mwri-drozer-user-guide-2015-03-23.pdf "Infrastructure Mode") section of the User Guide.  
+Once the setup is completed you can start a session to an emulator or a device connected per USB by running `adb forward tcp:31415 tcp:31415` and `drozer console connect`. This is called direct mode and you can see the full instructions in the [User Guide in section "Starting a Session"](https://labs.f-secure.com/assets/BlogFiles/mwri-drozer-user-guide-2015-03-23.pdf "Starting a Session"). An alternative is to run Drozer in infrastructure mode, where, you are running a drozer server that can handle multiple consoles and agents, and routes sessions between them. You can find the details of how to setup drozer in this mode in the ["Infrastructure Mode"](https://labs.f-secure.com/assets/BlogFiles/mwri-drozer-user-guide-2015-03-23.pdf "Infrastructure Mode") section of the User Guide.
 
 Now you are ready to begin analyzing apps. A good first step is to enumerate the attack surface of an app which can be done easily with the following command:
 
@@ -1263,6 +1281,10 @@ Learn more about [rooting your device with Magisk](#rooting-with-magisk "Rooting
 
 A Cydia Substrate Module used to check for commonly known indications of root - <https://github.com/devadvance/rootcloakplus>
 
+### Scrcpy
+
+[Scrcpy](https://github.com/Genymobile/scrcpy "Scrcpy") provides display and control of Android devices connected over USB (or [TCP/IP](https://www.genymotion.com/blog/open-source-project-scrcpy-now-works-wirelessly/ "Scrcpy now works wirelessly")). It does not require any root access and it works on GNU/Linux, Windows and macOS.
+
 ### SSLUnpinning
 
 An Xposed Module to bypass SSL certificate pinning - <https://github.com/ac-pm/SSLUnpinning_Xposed>
@@ -1319,11 +1341,11 @@ A tool that loads arbitrary dylibs into running App Store apps. It has built-in 
 
 ### BinaryCookieReader
 
-A tool to dump all the cookies from the binary Cookies.binarycookies file - <https://securitylearn.net/wp-content/uploads/tools/iOS/BinaryCookieReader.py>
+A tool to dump all the cookies from the binary Cookies.binarycookies file - <https://github.com/as0ler/BinaryCookieReader/blob/master/BinaryCookieReader.py>
 
 ### Burp Suite Mobile Assistant
 
-A tool to bypass certificate pinning and is able to inject into apps - <https://portswigger.net/burp/help/mobile_testing_using_mobile_assistant.html>
+A tool to bypass certificate pinning and is able to inject into apps - <https://portswigger.net/burp/documentation/desktop/tools/mobile-assistant>
 
 ### class-dump
 
@@ -1398,7 +1420,7 @@ cy# [alertView show]
 cy# [alertView release]
 ```
 
-<img src="Images/Chapters/0x06c/cycript_sample.png" alt="Cycript Alert Sample" width="250" />
+<img src="Images/Chapters/0x06c/cycript_sample.png" width="400px" />
 
 Find the app's document directory with Cycript:
 
@@ -1532,14 +1554,6 @@ An automated wrapper script for patching iOS applications (IPA files) and work o
 
 A tool to perform runtime analysis of iOS applications - <https://cydia.radare.org/pool/main/g/gdb/>
 
-### IDB
-
-[IDB](https://www.idbtool.com "IDBTool") is an open source tool to simplify some common tasks for iOS app security assessments and research. The [installation instructions for IDB](https://www.idbtool.com/installation/ "IDB Installation") are available in the documentation.
-
-Once you click on the button **Connect to USB/SSH device** in IDB and key in the SSH password in the terminal where you started IDB is ready to go. You can now click on **Select App...**, select the app you want to analyze and get initial meta information of the app. Now you are able to do binary analysis, look at the local storage and investigate IPC.
-
-Please keep in mind that IDB might be unstable and crash after selecting the app.
-
 ### iFunBox
 
 [iFunBox](http://www.i-funbox.com/ "iFunBox") is a file and app management tool that supports iOS. You can [download it for Windows and macOS](http://www.i-funbox.com/en_download.html "iFunBox").
@@ -1549,6 +1563,10 @@ It has several features, like app installation, access the app sandbox without j
 ### Introspy-iOS
 
 Blackbox tool to help understand what an iOS application is doing at runtime and assist in the identification of potential security issues - <https://github.com/iSECPartners/Introspy-iOS>
+
+### iOSbackup
+
+[`iOSbackup`](https://github.com/avibrazil/iOSbackup) is a Python 3 class that reads and extracts files from a password-encrypted iOS backup created by iTunes on Mac and Windows.
 
 ### ios-deploy
 
@@ -1643,7 +1661,7 @@ listening on http://localhost:31337
 
 When you execute the command `passionfruit` a local server will be started on port 31337. Connect your jailbroken device with the Frida server running, or a non-jailbroken device with a repackaged app including Frida to your macOS device via USB. Once you click on the "iPhone" icon you will get an overview of all installed apps:
 
-<img src="Images/Chapters/0x06b/Passionfruit.png" alt="Passionfruit" width="250" />
+<img src="Images/Chapters/0x06b/Passionfruit.png" width="100%" />
 
 With Passionfruit it's possible to explore different kinds of information concerning an iOS app. Once you selected the iOS app you can perform many tasks such as:
 
@@ -1733,7 +1751,7 @@ There are installation instructions as well for Ubuntu Linux 18.04 on [LinuxHint
 
 ### Burp Suite
 
-Burp Suite is an integrated platform for performing security testing mobile and web applications - <https://portswigger.net/burp/download.html>
+Burp Suite is an integrated platform for performing security testing mobile and web applications - <https://portswigger.net/burp/releases>
 
 Its tools work together seamlessly to support the entire testing process, from initial mapping and analysis of attack surfaces to finding and exploiting security vulnerabilities. Burp Proxy operates as a web proxy server for Burp Suite, which is positioned as a man-in-the-middle between the browser and web server(s). Burp Suite allows you to intercept, inspect, and modify incoming and outgoing raw HTTP traffic.
 
@@ -1746,7 +1764,7 @@ PortSwigger provides good tutorials on setting up both Android as iOS devices to
 - [Configuring an iOS Device to Work With Burp](https://support.portswigger.net/customer/portal/articles/1841108-configuring-an-ios-device-to-work-with-burp "Configuring an iOS Device to Work With Burp").
 - [Installing Burp's CA certificate to an iOS device](https://support.portswigger.net/customer/portal/articles/1841109-installing-burp-s-ca-certificate-in-an-ios-device "Installing Burp\'s CA Certificate in an iOS Device").
 
-Please refer to the section "Setting up an Interception Proxy" in the [Android](0x05b-basic-security-testing#setting-up-an-interception-proxy "Setting up an Interception Proxy") and [iOS](0x06b-basic-security-testing#setting-up-an-interception-proxy "Setting up an Interception Proxy") "Basic Security Testing" chapters for more information.
+Please refer to the section "Setting up an Interception Proxy" in the [Android](0x05b-Basic-Security_Testing.md#setting-up-an-interception-proxy "Setting up an Interception Proxy") and [iOS](0x06b-Basic-Security-Testing.md#setting-up-an-interception-proxy "Setting up an Interception Proxy") "Basic Security Testing" chapters for more information.
 
 ### MITM Relay
 
@@ -1754,7 +1772,7 @@ A script to intercept and modify non-HTTP protocols through Burp and others with
 
 ### OWASP ZAP
 
-[OWASP ZAP](https://www.owasp.org/index.php/OWASP_Zed_Attack_Proxy_Project "OWASP ZAP") (Zed Attack Proxy) is a free security tool which helps to automatically find security vulnerabilities in web applications and web services - <https://github.com/zaproxy/zaproxy>
+[OWASP ZAP](https://owasp.org/www-project-zap/ "OWASP ZAP") (Zed Attack Proxy) is a free security tool which helps to automatically find security vulnerabilities in web applications and web services - <https://github.com/zaproxy/zaproxy>
 
 ### tcpdump
 
@@ -1788,4 +1806,4 @@ The applications listed below can be used as training materials. Note: only the 
 - DVIA-v2: A vulnerable iOS app, written in Swift with over 15 vulnerabilities - <https://github.com/prateek147/DVIA-v2>
 - iGoat: An iOS Objective-C app serving as a learning tool for iOS developers (iPhone, iPad, etc.) and mobile app pentesters. It was inspired by the WebGoat project, and has a similar conceptual flow to it - <https://github.com/owasp/igoat>
 - iGoat-Swift: A Swift version of original iGoat project - <https://github.com/owasp/igoat-swift>
-- UnSAFE Bank: UnSAFE Bank is a core virtual banking application designed with the aim to incorporate the cybersecurity risks and various test cases such that newbie, developers, and security analysts can learn, hack and improvise their vulnerability assessment and penetration testing skills. - <https://github.com/lucideus-repo/UnSAFE_Bank>
+- UnSAFE Bank: UnSAFE Bank is a core virtual banking application designed with the aim to incorporate the cyber security risks and various test cases such that newbie, developers, and security analysts can learn, hack and improvise their vulnerability assessment and penetration testing skills. - <https://github.com/lucideus-repo/UnSAFE_Bank>

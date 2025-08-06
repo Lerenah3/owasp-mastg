@@ -27,7 +27,10 @@ Some permissions can be configured by the app's developers (e.g. Data Protection
 
 Even though Apple urges to protect the privacy of the user and to be [very clear on how to ask permissions](https://developer.apple.com/design/human-interface-guidelines/ios/app-architecture/requesting-permission/ "Requesting Permissions"), it can still be the case that an app requests too many of them for non-obvious reasons.
 
-Some permissions like camera, photos, calendar data, motion, contacts or speech recognition should be pretty straightforward to verify as it should be obvious if the app requires them to fulfill its tasks. For example, a QR Code scanning app [requires the camera](https://developer.apple.com/documentation/avfoundation/cameras_and_media_capture/requesting_authorization_for_media_capture_on_ios "Requesting Authorization for Media Capture on iOS") to function but might be [requesting the photos permission](https://developer.apple.com/documentation/photokit/requesting_authorization_to_access_photos "Requesting Authorization to Access Photos") as well which, if granted, gives the app access to all user photos in the "Camera Roll" (the iOS default system-wide location for storing photos). A malicious app could use this to leak the user pictures. For this reason, apps using the camera permission might rather want to avoid requesting the photos permission and store the taken pictures inside the app sandbox to avoid other apps (having the photos permission) to access them. Additional steps might be required if the pictures are considered sensitive, e.g. corporate data, passwords or credit cards. See the chapter "[Data Storage on iOS](0x06d-Testing-Data-Storage.md)" for more information.
+Some permissions such as Camera, Photos, Calendar Data, Motion, Contacts or Speech Recognition should be pretty straightforward to verify as it should be obvious if the app requires them to fulfill its tasks. Let's consider the following examples ragarding the Photos permission, which, if granted, gives the app access to all user photos in the "Camera Roll" (the iOS default system-wide location for storing photos):
+
+- The typical QR Code scanning app obviously requires the camera to function but might be requesting the photos permission as well. If storage is explicitly required, and depending on the sensitivity of the pictures being taken, these apps might better opt to use the app sandbox storage to avoid other apps (having the photos permission) to access them. See the chapter "[Data Storage on iOS](0x06d-Testing-Data-Storage.md)" for more information reagarding storage of sensitive data.
+- Some apps require photo uploads (e.g. for profile pictures). Recent versions of iOS introduce new APIs such as [`UIImagePickerController`](https://developer.apple.com/documentation/uikit/uiimagepickercontroller "UIImagePickerController") (iOS 11+) and its modern [replacement](https://developer.apple.com/videos/play/wwdc2020/10652/ "replacement") [`PHPickerViewController`](https://developer.apple.com/documentation/photokit/phpickerviewcontroller "PHPickerViewController") (iOS 14+). These APIs run on a separate process from your app and by using them, the app gets read-only access exclusively to the images selected by the user instead of to the whole "Camera Roll". This is considered a best practice to avoid requesting unnecessary permissions.
 
 Other permissions like Bluetooth or Location require deeper verification steps. They may be required for the app to properly function but the data being handled by those tasks might not be properly protected. For more information and some examples please refer to the "[Source Code Inspection](#source-code-inspection "Source Code Inspection")" in the "Static Analysis" section below and to the "Dynamic Analysis" section.
 
@@ -115,7 +118,7 @@ Since iOS 10, these are the main areas which you need to inspect for permissions
 
 [*Purpose strings*](https://developer.apple.com/documentation/uikit/core_app/protecting_the_user_s_privacy/accessing_protected_resources?language=objc#3037322 "Provide a Purpose String") or *usage description strings* are custom texts that are offered to users in the system's permission request alert when requesting permission to access protected data or resources.
 
-<img src="Images/Chapters/0x06h/permission_request_alert.png" width="250px" />
+<img src="Images/Chapters/0x06h/permission_request_alert.png" width="400px" />
 
 If linking on or after iOS 10, developers are required to include purpose strings in their app's [`Info.plist`](https://developer.apple.com/library/archive/documentation/iPhone/Conceptual/iPhoneOSProgrammingGuide/ExpectedAppBehaviors/ExpectedAppBehaviors.html#//apple_ref/doc/uid/TP40007072-CH3-SW5 "The Information Property List File") file. Otherwise, if the app attempts to access protected data or resources without having provided the corresponding purpose string, [the access will fail and the app might even crash](https://developer.apple.com/documentation/uikit/core_app/protecting_the_user_s_privacy/accessing_protected_resources?language=objc "Accessing Protected Resources").
 
@@ -126,7 +129,7 @@ If having the original source code, you can verify the permissions included in t
 
 You may switch the view to display the raw values by right-clicking and selecting "Show Raw Keys/Values" (this way for example `"Privacy - Location When In Use Usage Description"` will turn into `NSLocationWhenInUseUsageDescription`).
 
-<img src="Images/Chapters/0x06h/purpose_strings_xcode.png" width="550px" />
+<img src="Images/Chapters/0x06h/purpose_strings_xcode.png" width="100%" />
 
 If only having the IPA:
 
@@ -201,7 +204,7 @@ and then search for the Entitlements key region (`<key>Entitlements</key>`).
 
 #### Entitlements Embedded in the Compiled App Binary
 
-If you only have the app's IPA or simply the installed app on a jailbroken device, you normally won't be able to find `.entitlements` files. This could be also the case for the `embedded.mobileprovision` file. Still, you should be able to extract the entitlements property lists from the app binary yourself (which you've previously obtained as explained in the "iOS Basic Security Testing" chapter, section "Acquiring the App Binary").
+If you only have the app's IPA or simply the installed app on a jailbroken device, you normally won't be able to find `.entitlements` files. This could be also the case for the `embedded.mobileprovision` file. Still, you should be able to extract the entitlements property lists from the app binary yourself (which you've previously obtained as explained in the "iOS Basic Security Testing" chapter, section ["Acquiring the App Binary"](0x06b-Basic-Security-Testing.md#acquiring-the-app-binary)).
 
 The following steps should work even when targeting an encrypted binary. If for some reason they don't, you'll have to decrypt and extract the app with e.g. Clutch (if compatible with your iOS version), frida-ios-dump or similar.
 
@@ -311,7 +314,7 @@ $ frida-trace -U "Telegram" -m "*[* *authorizationStatus*]"
 
 Now we open the share dialog:
 
-<img src="Images/Chapters/0x06h/telegram_share_something.png" width="250px" />
+<img src="Images/Chapters/0x06h/telegram_share_something.png" width="400px" />
 
 The following methods are displayed:
 
@@ -364,7 +367,7 @@ We see that `+[CLLocationManager authorizationStatus]` returned `0x4` ([CLAuthor
 
 Next, there is a *visual* way to inspect the status of some app permissions when using the iPhone/iPad by opening "Settings" and scrolling down until you find the app you're interested in. When clicking on it, this will open the "ALLOW APP_NAME TO ACCESS" screen. However, not all permissions might be displayed yet. You will have to *trigger* them in order to be listed on that screen.
 
-<img src="Images/Chapters/0x06h/settings_allow_screen.png" width="550px" />
+<img src="Images/Chapters/0x06h/settings_allow_screen.png" width="100%" />
 
 For example, in the previous example, the "Location" entry was not being listed until we triggered the permission dialogue for the first time. Once we did it, no matter if we allowed the access or not, the the "Location" entry will be displayed.
 
@@ -441,7 +444,7 @@ Try to retrieve the `apple-app-site-association` file from the server using the 
 
 You can retrieve it yourself with your browser or use the [Apple App Site Association (AASA) Validator](https://branch.io/resources/aasa-validator/ "AASA"). After entering the domain, it will display the file, verify it for you and show the results (e.g. if it is not being properly served over HTTPS). See the following example from [apple.com](https://www.apple.com/.well-known/apple-app-site-association "Apple\'s apple-app-site-association file"):
 
-<img src="Images/Chapters/0x06h/apple-app-site-association-file_validation.png" width="550px" />
+<img src="Images/Chapters/0x06h/apple-app-site-association-file_validation.png" width="100%" />
 
 ```json
 {
@@ -558,7 +561,7 @@ Finally, as stated above, be sure to verify that the actions triggered by the UR
 
 An app might be calling other apps via universal links in order to simply trigger some actions or to transfer information, in that case, it should be verified that it is not leaking sensitive information.
 
-If you have the original source code, you can search it for the `openURL:options:completionHandler:` method and check the data being handled.
+If you have the original source code, you can search it for the `openURL:options: completionHandler:` method and check the data being handled.
 
 > Note that the `openURL:options:completionHandler:` method is not only used to open universal links but also to call custom URL schemes.
 
@@ -642,15 +645,15 @@ One of them should offer the "Open in app" option and the other should not.
 
 If we long press on the first one (`http://www.apple.com/shop/buy-iphone/iphone-xr`) it only offers the option to open it (in the browser).
 
-<img src="Images/Chapters/0x06h/forbidden_universal_link.png" width="250px" />
+<img src="Images/Chapters/0x06h/forbidden_universal_link.png" width="400px" />
 
 If we long press on the second (`http://www.apple.com/today`) it shows options to open it in Safari and in "Apple Store":
 
-<img src="Images/Chapters/0x06h/allowed_universal_link.png" width="250px" />
+<img src="Images/Chapters/0x06h/allowed_universal_link.png" width="400px" />
 
 > Note that there is a difference between a click and a long press. Once we long press a link and select an option, e.g. "Open in Safari", this will become the default option for all future clicks until we long press again and select another option.
 
-If we repeat the process on the method `application:continueUserActivity:restorationHandler:` by either hooking or tracing, we will see how it gets called as soon as we open the allowed universal link. For this you can use for example `frida-trace`:
+If we repeat the process on the method `application:continueUserActivity: restorationHandler:` by either hooking or tracing, we will see how it gets called as soon as we open the allowed universal link. For this you can use for example `frida-trace`:
 
 ```bash
 $ frida-trace -U "Apple Store" -m "*[* *restorationHandler*]"
@@ -696,7 +699,7 @@ $ frida-trace -U Telegram -m "*[* *restorationHandler*]"
 
 Write `https://t.me/addstickers/radare` (found through a quick Internet research) and open it from the Notes app.
 
-<img src="Images/Chapters/0x06h/telegram_add_stickers_universal_link.png" width="250px" />
+<img src="Images/Chapters/0x06h/telegram_add_stickers_universal_link.png" width="400px" />
 
 First we let frida-trace generate the stubs in `__handlers__/`:
 
@@ -903,7 +906,7 @@ This knowledge should help you when testing apps supporting Handoff.
 
 Starting on iOS 6 it is possible for third-party apps to share data (items) via specific mechanisms [like AirDrop, for example](https://developer.apple.com/library/archive/documentation/iPhone/Conceptual/iPhoneOSProgrammingGuide/Inter-AppCommunication/Inter-AppCommunication.html#//apple_ref/doc/uid/TP40007072-CH6-SW3 "Supporting AirDrop"). From a user perspective, this feature is the well-known system-wide *share activity sheet* that appears after clicking on the "Share" button.
 
-<img src="Images/Chapters/0x06h/share_activity_sheet.png" width="550px" />
+<img src="Images/Chapters/0x06h/share_activity_sheet.png" width="100%" />
 
 The available built-in sharing mechanisms (aka. Activity Types) include:
 
@@ -927,9 +930,9 @@ When testing `UIActivity` Sharing you should pay special attention to:
 - the custom activities,
 - the excluded activity types.
 
-Data sharing via `UIActivity` works by creating a `UIActivityViewController` and passing it the desired items (URLs, text, a picture) on [`init(activityItems:applicationActivities:)`](https://developer.apple.com/documentation/uikit/uiactivityviewcontroller/1622019-init "UIActivityViewController init(activityItems:applicationActivities:)").
+Data sharing via `UIActivity` works by creating a `UIActivityViewController` and passing it the desired items (URLs, text, a picture) on [`init(activityItems: applicationActivities:)`](https://developer.apple.com/documentation/uikit/uiactivityviewcontroller/1622019-init "UIActivityViewController init(activityItems:applicationActivities:)").
 
-As we mentioned before, it is possible to exclude some of the sharing mechanisms via the controller's [`excludedActivityTypes` property](https://developer.apple.com/documentation/uikit/uiactivityviewcontroller/1622009-excludedactivitytypes "UIActivityViewController excludedActivityTypes"). It is highly recommended to do the tests using the latest versions of iOS as the number of activity types that can be excluded can increase. The developers have to be aware of this and **explicitely exclude** the ones that are not appropriate for the app data. Some activity types might not be even documented like "Create Watch Face".
+As we mentioned before, it is possible to exclude some of the sharing mechanisms via the controller's [`excludedActivityTypes` property](https://developer.apple.com/documentation/uikit/uiactivityviewcontroller/1622009-excludedactivitytypes "UIActivityViewController excludedActivityTypes"). It is highly recommended to do the tests using the latest versions of iOS as the number of activity types that can be excluded can increase. The developers have to be aware of this and **explicitly exclude** the ones that are not appropriate for the app data. Some activity types might not be even documented like "Create Watch Face".
 
 If having the source code, you should take a look at the `UIActivityViewController`:
 
@@ -1030,7 +1033,7 @@ There are three main things you can easily inspect by performing dynamic instrum
 
 To achieve this you can do two things:
 
-- Hook the method we have seen in the static analysis ([`init(activityItems:applicationActivities:)`](https://developer.apple.com/documentation/uikit/uiactivityviewcontroller/1622019-init "UIActivityViewController init(activityItems:applicationActivities:)")) to get the `activityItems` and `applicationActivities`.
+- Hook the method we have seen in the static analysis ([`init(activityItems: applicationActivities:)`](https://developer.apple.com/documentation/uikit/uiactivityviewcontroller/1622019-init "UIActivityViewController init(activityItems:applicationActivities:)")) to get the `activityItems` and `applicationActivities`.
 - Find out the excluded activities by hooking [`excludedActivityTypes` property](https://developer.apple.com/documentation/uikit/uiactivityviewcontroller/1622009-excludedactivitytypes "UIActivityViewController excludedActivityTypes").
 
 Let's see an example using Telegram to share a picture and a text file. First prepare the hooks, we will use the Frida REPL and write a script for this:
@@ -1124,7 +1127,7 @@ RET @ 0x1c001b1d0:
 You can see that:
 
 - For the picture, the activity item is a `UIImage` and there are no excluded activities.
-- For the text file there are two different activity items and "com.apple.UIKit.activity.MarkupAsPDF" is excluded.
+- For the text file there are two different activity items and `com.apple.UIKit.activity. MarkupAsPDF` is excluded.
 
 In the previous example, there were no custom `applicationActivities` and only one excluded activity. However, to better illustrate what you can expect from other apps we have shared a picture using another app, here you can see a bunch of application activities and excluded activities (output was edited to hide the name of the originating app):
 
@@ -1167,7 +1170,7 @@ To illustrate this with an example we have chosen the same real-world file manag
 2. Wait for the **AirDrop** popup to appear and click on **Accept**.
 3. As there is no default app that will open the file, it switches to the **Open with...** popup. There, we can select the app that will open our file. The next screenshot shows this (we have modified the display name using Frida to conceal the app's real name):
 
-    <img src="Images/Chapters/0x06h/airdrop_openwith.png" width="250px" />
+    <img src="Images/Chapters/0x06h/airdrop_openwith.png" width="400px" />
 
 4. After selecting **SomeFileManager** we can see the following:
 
@@ -1235,7 +1238,7 @@ There are three important elements here:
 
 For example, the user selects text in the *host app*, clicks on the "Share" button and selects one "app" or action from the list. This triggers the *app extension* of the *containing app*. The app extension displays its view within the context of the host app and uses the items provided by the host app, the selected text in this case, to perform a specific task (post it on a social network, for example). See this picture from the [Apple App Extension Programming Guide](https://developer.apple.com/library/archive/documentation/General/Conceptual/ExtensibilityPG/ExtensionOverview.html#//apple_ref/doc/uid/TP40014214-CH2-SW13 "An app extension can communicate indirectly with its containing app") which pretty good summarizes this:
 
-<img src="Images/Chapters/0x06h/app_extensions_communication.png" width="550px" />
+<img src="Images/Chapters/0x06h/app_extensions_communication.png" width="100%" />
 
 ##### Security Considerations
 
@@ -1267,7 +1270,7 @@ The static analysis will take care of:
 
 If you have the original source code you can search for all occurrences of `NSExtensionPointIdentifier` with Xcode (cmd+shift+f) or take a look into "Build Phases / Embed App extensions":
 
-<img src="Images/Chapters/0x06h/xcode_embed_app_extensions.png" width="550px" />
+<img src="Images/Chapters/0x06h/xcode_embed_app_extensions.png" width="100%" />
 
 There you can find the names of all embedded app extensions followed by `.appex`, now you can navigate to the individual app extensions in the project.
 
@@ -1329,7 +1332,7 @@ Only the data types present here and not having `0` as `MaxCount` will be suppor
 
 Remember that app extensions and their containing apps do not have direct access to each other’s containers. However, data sharing can be enabled. This is done via ["App Groups"](https://developer.apple.com/library/archive/documentation/Miscellaneous/Reference/EntitlementKeyReference/Chapters/EnablingAppSandbox.html#//apple_ref/doc/uid/TP40011195-CH4-SW19 "Adding an App to an App Group") and the [`NSUserDefaults`](https://developer.apple.com/documentation/foundation/nsuserdefaults "NSUserDefaults") API. See this figure from [Apple App Extension Programming Guide](https://developer.apple.com/library/archive/documentation/General/Conceptual/ExtensibilityPG/ExtensionScenarios.html#//apple_ref/doc/uid/TP40014214-CH21-SW11 "An app extension’s container is distinct from its containing app’s container"):
 
-<img src="Images/Chapters/0x06h/app_extensions_container_restrictions.png" width="500px" />
+<img src="Images/Chapters/0x06h/app_extensions_container_restrictions.png" width="400px" />
 
 As also mentioned in the guide, the app must set up a shared container if the app extension uses the `NSURLSession` class to perform a background upload or download, so that both the extension and its containing app can access the transferred data.
 
@@ -1354,7 +1357,7 @@ For this we should hook `NSExtensionContext - inputItems` in the data originatin
 
 Following the previous example of Telegram we will now use the "Share" button on a text file (that was received from a chat) to create a note in the Notes app with it:
 
-<img src="Images/Chapters/0x06h/telegram_share_extension.png" width="250px" />
+<img src="Images/Chapters/0x06h/telegram_share_extension.png" width="400px" />
 
 If we run a trace, we'd see the following output:
 
@@ -1458,7 +1461,7 @@ When monitoring the pasteboards, there is several details that may be dynamicall
 - Get the first available pasteboard item: e.g. for strings use `string` method. Or use any of the other methods for the [standard data types](https://developer.apple.com/documentation/uikit/uipasteboard?language=objc#1654275 "Getting and Setting Pasteboard Items of Standard Data Types").
 - Get the number of items with `numberOfItems`.
 - Check for existence of standard data types with the [convenience methods](https://developer.apple.com/documentation/uikit/uipasteboard?language=objc#2107142 "Checking for Data Types on a Pasteboard"), e.g. `hasImages`, `hasStrings`, `hasURLs` (starting in iOS 10).
-- Check for other data types (typically UTIs) with [`containsPasteboardTypes:inItemSet:`](https://developer.apple.com/documentation/uikit/uipasteboard/1622100-containspasteboardtypes?language=objc "UIPasteboard containsPasteboardTypes:inItemSet:"). You may inspect for more concrete data types like, for example an picture as public.png and public.tiff ([UTIs](http://web.archive.org/web/20190616231857/https://developer.apple.com/documentation/mobilecoreservices/uttype "MobileCoreServices UTType")) or for custom data such as com.mycompany.myapp.mytype. Remember that, in this case, only those apps that *declare knowledge* of the type are able to understand the data written to the pasteboard. This is the same as we have seen in the "[UIActivity Sharing](#uiactivity-sharing "UIActivity Sharing")" section. Retrieve them using [`itemSetWithPasteboardTypes:`](https://developer.apple.com/documentation/uikit/uipasteboard/1622071-itemsetwithpasteboardtypes?language=objc "UIPasteboard itemSetWithPasteboardTypes:") and setting the corresponding UTIs.
+- Check for other data types (typically UTIs) with [`containsPasteboardTypes: inItemSet:`](https://developer.apple.com/documentation/uikit/uipasteboard/1622100-containspasteboardtypes?language=objc "UIPasteboard containsPasteboardTypes:inItemSet:"). You may inspect for more concrete data types like, for example an picture as public.png and public.tiff ([UTIs](http://web.archive.org/web/20190616231857/https://developer.apple.com/documentation/mobilecoreservices/uttype "MobileCoreServices UTType")) or for custom data such as com.mycompany.myapp.mytype. Remember that, in this case, only those apps that *declare knowledge* of the type are able to understand the data written to the pasteboard. This is the same as we have seen in the "[UIActivity Sharing](#uiactivity-sharing "UIActivity Sharing")" section. Retrieve them using [`itemSetWithPasteboardTypes:`](https://developer.apple.com/documentation/uikit/uipasteboard/1622071-itemsetwithpasteboardtypes?language=objc "UIPasteboard itemSetWithPasteboardTypes:") and setting the corresponding UTIs.
 - Check for excluded or expiring items by hooking `setItems:options:` and inspecting its options for `UIPasteboardOptionLocalOnly` or `UIPasteboardOptionExpirationDate`.
 
 If only looking for strings you may want to use objection's command `ios pasteboard monitor`:
@@ -1578,7 +1581,7 @@ The first step to test custom URL schemes is finding out whether an application 
 
 If you have the original source code and want to view registered protocol handlers, simply open the project in Xcode, go to the **Info** tab and open the **URL Types** section as presented in the screenshot below:
 
-<img src="Images/Chapters/0x06h/URL_scheme.png" width="500px" />
+<img src="Images/Chapters/0x06h/URL_scheme.png" width="100%" />
 
 Also in Xcode you can find this by searching for the `CFBundleURLTypes` key in the app’s `Info.plist` file (example from [iGoat-Swift](https://github.com/OWASP/iGoat-Swift "iGoat-Swift")):
 
@@ -1848,7 +1851,7 @@ $ frida -U iGoat-Swift
 true
 ```
 
-In this example from [Frida CodeShare](https://codeshare.frida.re/@dki/ios-url-scheme-fuzzing/ "iOS URL Scheme Fuzzing Script") the author uses the non-public API `LSApplicationWorkspace.openSensitiveURL:withOptions:` to open the URLs (from the SpringBoard app):
+In this example from [Frida CodeShare](https://codeshare.frida.re/@dki/ios-url-scheme-fuzzing/ "iOS URL Scheme Fuzzing Script") the author uses the non-public API `LSApplication Workspace.openSensitiveURL:withOptions:` to open the URLs (from the SpringBoard app):
 
 ```javascript
 function openURL(url) {
@@ -1859,33 +1862,6 @@ function openURL(url) {
 ```
 
 > Note that the use of non-public APIs is not permitted on the App Store, that's why we don't even test these but we are allowed to use them for our dynamic analysis.
-
-##### Using IDB
-
-For this you can also use [IDB](https://www.idbtool.com/ "IDB"):
-
-- Start IDB, connect to your device and select the target app. You can find details in the [IDB documentation](https://www.idbtool.com/documentation/setup.html "IDB Setup").
-- Go to the **URL Handlers** section. In **URL schemes**, click **Refresh**, and on the left you'll find a list of all custom schemes defined in the app being tested. You can load these schemes by clicking **Open**, on the right side. By simply opening a blank URI scheme (e.g., opening `myURLscheme://`), you can discover hidden functionality (e.g., a debug window) and bypass local authentication.
-
-##### Using Needle
-
-Needle can be used to test custom URL schemes, the following module can be used to open the URLs (URIs):
-
-```bash
-[needle] >
-[needle] > use dynamic/ipc/open_uri
-[needle][open_uri] > show options
-
-  Name  Current Value  Required  Description
-  ----  -------------  --------  -----------
-  URI                  yes       URI to launch, eg tel://123456789 or http://www.google.com/
-
-[needle][open_uri] > set URI "myapp://testpayload'"
-URI => "myapp://testpayload'"
-[needle][open_uri] > run
-```
-
-Manual fuzzing can be performed against the URL scheme to identify input validation and memory corruption bugs.
 
 #### Identifying and Hooking the URL Handler Method
 
@@ -1951,7 +1927,7 @@ Now we know that:
 
 The call was successful and we see now that the iGoat app was open:
 
-<img src="Images/Chapters/0x06h/iGoat_opened_via_url_scheme.jpg" width="250px" />
+<img src="Images/Chapters/0x06h/iGoat_opened_via_url_scheme.jpg" width="400px" />
 
 Notice that we can also see that the caller (source application) was Safari if we look in the upper-left corner of the screenshot.
 
@@ -2008,7 +1984,7 @@ The output is truncated for better readability. This time you see that `UIApplic
 
 You can now test the same situation when clicking on a link contained on a page. Safari will identify and process the URL scheme and choose which action to execute. Opening this link "<https://telegram.me/fridadotre>" will trigger this behavior.
 
-<img src="Images/Chapters/0x06h/open_in_telegram_via_urlscheme.png" width="250px" />
+<img src="Images/Chapters/0x06h/open_in_telegram_via_urlscheme.png" width="400px" />
 
 First of all we let frida-trace generate the stubs for us:
 
@@ -2091,7 +2067,7 @@ There you can observe the following:
 
 It is interesting to see that if you navigate again to "<https://telegram.me/fridadotre>", click on **cancel** and then click on the link offered by the page itself ("Open in the Telegram app"), instead of opening via custom URL scheme it will open via universal links.
 
-<img src="Images/Chapters/0x06h/open_in_telegram_via_universallink.png" width="250px" />
+<img src="Images/Chapters/0x06h/open_in_telegram_via_universallink.png" width="400px" />
 
 You can try this while tracing both methods:
 
@@ -2241,16 +2217,6 @@ OK!
 
 The script will detect if a crash occurred. On this run it did not detect any crashed but for other apps this could be the case. We would be able to inspect the crash reports in `/private/var/mobile/Library/Logs/CrashReporter` or in `/tmp` if it was moved by the script.
 
-##### Using IDB
-
-In the **URL Handlers** section, go to the **Fuzzer** tab. On the left side default IDB payloads are listed. Once you have generated your payload list (e.g. using FuzzDB), go to the **Fuzz Template** section in the left bottom panel and define a template. Use `$@$` to define an injection point, for example:
-
-```bash
-myURLscheme://$@$
-```
-
-While the URL scheme is being fuzzed, watch the logs (see the section "[Monitoring System Logs](0x06b-Basic-Security-Testing.md#monitoring-system-logs "Monitoring System Logs")" of the chapter "iOS Basic Security Testing" to observe the impact of each payload. The history of used payloads is on the right side of the IDB "Fuzzer" tab.
-
 ## Testing iOS WebViews (MSTG-PLATFORM-5)
 
 ### Overview
@@ -2282,7 +2248,7 @@ A JavaScript Bridge can be enabled when using `WKWebView`s (and `UIWebView`s). S
 - An Action ("Share") button.
 - A Done button, back and forward navigation buttons, and a "Safari" button to open the page directly in Safari.
 
-<img src="Images/Chapters/0x06h/sfsafariviewcontroller.png" width="300" />
+<img src="Images/Chapters/0x06h/sfsafariviewcontroller.png" width="400px" />
 
 There are a couple of things to consider:
 
@@ -2292,6 +2258,25 @@ There are a couple of things to consider:
 - According to the App Store Review Guidelines, `SFSafariViewController`s may not be hidden or obscured by other views or layers.
 
 This should be sufficient for an app analysis and therefore, `SFSafariViewController`s are out of scope for the Static and Dynamic Analysis sections.
+
+#### Safari Web Inspector
+
+Enabling Safari web inspection on iOS allows you to inspect the contents of a WebView remotely from a macOS device and it does not require a jailbroken iOS device.
+Enabling the [Safari Web Inspector](https://developer.apple.com/library/archive/documentation/AppleApplications/Conceptual/Safari_Developer_Guide/GettingStarted/GettingStarted.html) is especially interesting in applications that expose native APIs using a JavaScript bridge, for example in hybrid applications.
+
+To activate the web inspection you have to follow these steps:
+
+1. On the iOS device open the Settings app: Go to **Safari -> Advanced** and toggle on *Web Inspector*.
+2. On the macOS device, open Safari: in the menu bar, go to **Safari -> Preferences -> Advanced** and enable *Show Develop menu in menu bar*.
+3. Connect your iOS device to the macOS device and unlock it: the iOS device name should appear in the *Develop* menu.
+4. (If not yet trusted) On macOS's Safari, go to the *Develop* menu, click on the iOS device name, then on "Use for Development" and enable trust.
+
+To open the web inspector and debug a WebView:
+
+1. In iOS, open the app and navigate to the screen that should contain a WebView.
+2. In macOS Safari, go to **Developer -> 'iOS Device Name'** and you should see the name of the WebView based context. Click on it to open the Web Inspector.
+
+Now you're able to debug the WebView as you would with a regular web page on your desktop browser.
 
 ### Static Analysis
 
@@ -2348,7 +2333,7 @@ $ xcrun swift-demangle __T0So9WKWebViewCABSC6CGRectV5frame_So0aB13ConfigurationC
 
 #### Testing JavaScript Configuration
 
-First of all, rememeber that JavaScript cannot be disabled for `UIWebVIews`.
+First of all, remember that JavaScript cannot be disabled for `UIWebVIews`.
 
 For `WKWebView`s, as a best practice, JavaScript should be disabled unless it is explicitly required. To verify that JavaScript was properly disabled search the project for usages of `WKPreferences` and ensure that the [`javaScriptEnabled`](https://developer.apple.com/documentation/webkit/wkpreferences/1536203-javascriptenabled "WKPreferences javaScriptEnabled") property is set to `false`:
 
@@ -2369,7 +2354,7 @@ If user scripts were defined, they will continue running as the `javaScriptEnabl
 
 #### Testing for Mixed Content
 
-In contrast to `UIWebView`s, when using `WKWebView`s it is possible to detect mixed content (HTTP content loaded from a HTTPS page). By using the method [`hasOnlySecureContent`](https://developer.apple.com/documentation/webkit/wkwebview/1415002-hasonlysecurecontent "WKWebView hasOnlySecureContent") it can be verified whether all resources on the page have been loaded through securely encrypted connections. This example from [#thiel2] (see page 159 and 160) uses this to ensure that only content loaded via HTTPS is shown to the user, otherwise an alert is displayed telling the user that mixed content was detected.  
+In contrast to `UIWebView`s, when using `WKWebView`s it is possible to detect [mixed content](https://developers.google.com/web/fundamentals/security/prevent-mixed-content/fixing-mixed-content?hl=en "Preventing Mixed Content") (HTTP content loaded from a HTTPS page). By using the method [`hasOnlySecureContent`](https://developer.apple.com/documentation/webkit/wkwebview/1415002-hasonlysecurecontent "WKWebView hasOnlySecureContent") it can be verified whether all resources on the page have been loaded through securely encrypted connections. This example from [#thiel2] (see page 159 and 160) uses this to ensure that only content loaded via HTTPS is shown to the user, otherwise an alert is displayed telling the user that mixed content was detected.
 
 In the compiled binary:
 
@@ -2432,7 +2417,7 @@ ObjC.choose(ObjC.classes['SFSafariViewController'], {
 });
 ```
 
-For the `UIWebView` and `WKWebView` WebViews we also print the assotiated URL for the sake of completion.
+For the `UIWebView` and `WKWebView` WebViews we also print the associated URL for the sake of completion.
 
 In order to ensure that you will be able to find the instances of the WebViews in the heap, be sure to first navigate to the WebView you've found. Once there, run the code above, e.g. by copying into the Frida REPL:
 
@@ -2567,7 +2552,7 @@ Use the following best practices as defensive-in-depth measures:
 
 If a WebView is loading content from the app data directory, users should not be able to change the filename or path from which the file is loaded, and they shouldn't be able to edit the loaded file.
 
-This presents an issue especially in `UIWebView`s loading untrusted content via the deprecated methods [`loadHTMLString:baseURL:`](https://developer.apple.com/documentation/uikit/uiwebview/1617979-loadhtmlstring?language=objc "UIWebView loadHTMLString:baseURL:") or [`loadData:MIMEType:textEncodingName:baseURL:`](https://developer.apple.com/documentation/uikit/uiwebview/1617941-loaddata?language=objc "UIWebView loadData:MIMEType:textEncodingName:baseURL:") and setting the `baseURL` parameter to `nil` or to a `file:` or `applewebdata:` URL schemes. In this case, in order to prevent unauthorized access to local files, the best option is to set it instead to `about:blank`. However, the recommendation is to avoid the use of `UIWebView`s and switch to `WKWebView`s instead.
+This presents an issue especially in `UIWebView`s loading untrusted content via the deprecated methods [`loadHTMLString:baseURL:`](https://developer.apple.com/documentation/uikit/uiwebview/1617979-loadhtmlstring?language=objc "UIWebView loadHTMLString:baseURL:") or [`loadData:MIMEType:textEncodingName: baseURL:`](https://developer.apple.com/documentation/uikit/uiwebview/1617941-loaddata?language=objc "UIWebView loadData:MIMEType:textEncodingName:baseURL:") and setting the `baseURL` parameter to `nil` or to a `file:` or `applewebdata:` URL schemes. In this case, in order to prevent unauthorized access to local files, the best option is to set it instead to `about:blank`. However, the recommendation is to avoid the use of `UIWebView`s and switch to `WKWebView`s instead.
 
 Here's an example of a vulnerable `UIWebView` from ["Where's My Browser?"](https://github.com/authenticationfailure/WheresMyBrowser.iOS/blob/master/WheresMyBrowser/UIWebViewController.swift#L219 "Where\'s My Browser? UIWebViewController.swift Line 219"):
 
@@ -2627,7 +2612,7 @@ $ rabin2 -zz ./WheresMyBrowser | grep -i "loadHTMLString"
 
 In a case like this, it is recommended to perform dynamic analysis to ensure that this is in fact being used and from which kind of WebView. The `baseURL` parameter here doesn't present an issue as it will be set to "null" but could be an issue if not set properly when using a `UIWebView`. See "Checking How WebViews are Loaded" for an example about this.
 
-In addition, you should also verify if the app is using the method [`loadFileURL:allowingReadAccessToURL:`](https://developer.apple.com/documentation/webkit/wkwebview/1414973-loadfileurl?language=objc "WKWebView loadFileURL:allowingReadAccessToURL:"). Its first parameter is `URL` and contains the URL to be loaded in the WebView, its second parameter `allowingReadAccessToURL` may contain a single file or a directory. If containing a single file, that file will be available to the WebView. However, if it contains a directory, all files on that directory will be made available to the WebView. Therefore, it is worth inspecting this and in case it is a directory, verifying that no sensitive data can be found inside it.
+In addition, you should also verify if the app is using the method [`loadFileURL: allowingReadAccessToURL:`](https://developer.apple.com/documentation/webkit/wkwebview/1414973-loadfileurl?language=objc "WKWebView loadFileURL:allowingReadAccessToURL:"). Its first parameter is `URL` and contains the URL to be loaded in the WebView, its second parameter `allowingReadAccessToURL` may contain a single file or a directory. If containing a single file, that file will be available to the WebView. However, if it contains a directory, all files on that directory will be made available to the WebView. Therefore, it is worth inspecting this and in case it is a directory, verifying that no sensitive data can be found inside it.
 
 Example in Swift from ["Where's My Browser?"](https://github.com/authenticationfailure/WheresMyBrowser.iOS/blob/master/WheresMyBrowser/WKWebViewController.swift#L186 "Where\'s My Browser? WKWebViewController.swift Line 186"):
 
@@ -2686,7 +2671,7 @@ If one or more of the above properties are activated, you should determine wheth
 
 #### Checking Telephone Number Detection
 
-In Safari on iOS, telephone number detection is on by default. However, you might want to turn it off if your HTML page contains numbers that can be interpreted as phone numbers, but are not phone numbers, or to prevent the DOM document from being modified when parsed by the browser. To turn off telephone number detection in Safari on iOS, use the format-detection meta tag (`<meta name = "format-detection" content = "telephone=no">`). An example of this can be found in the [Apple developer documenation](https://developer.apple.com/library/archive/featuredarticles/iPhoneURLScheme_Reference/PhoneLinks/PhoneLinks.html#//apple_ref/doc/uid/TP40007899-CH6-SW2 "Phone Links: Turning telephone number detection off"). Phone links should be then used (e.g. `<a href="tel:1-408-555-5555">1-408-555-5555</a>`) to explicitly create a link.
+In Safari on iOS, telephone number detection is on by default. However, you might want to turn it off if your HTML page contains numbers that can be interpreted as phone numbers, but are not phone numbers, or to prevent the DOM document from being modified when parsed by the browser. To turn off telephone number detection in Safari on iOS, use the format-detection meta tag (`<meta name = "format-detection" content = "telephone=no">`). An example of this can be found in the [Apple developer documentation](https://developer.apple.com/library/archive/featuredarticles/iPhoneURLScheme_Reference/PhoneLinks/PhoneLinks.html#//apple_ref/doc/uid/TP40007899-CH6-SW2 "Phone Links: Turning telephone number detection off"). Phone links should be then used (e.g. `<a href="tel:1-408-555-5555">1-408-555-5555</a>`) to explicitly create a link.
 
 ### Dynamic Analysis
 
@@ -2694,7 +2679,7 @@ If it's possible to load local files via a WebView, the app might be vulnerable 
 
 To simulate an attack, you may inject your own JavaScript into the WebView with an interception proxy or simply by using dynamic instrumentation. Attempt to access local storage and any native methods and properties that might be exposed to the JavaScript context.
 
-In a real-world scenario, JavaScript can only be injected through a permanent backend Cross-Site Scripting vulnerability or a MITM attack. See the OWASP [XSS cheat sheet](https://goo.gl/x1mMMj "XSS (Cross-Site Scripting) Prevention Cheat Sheet") and the chapter "[iOS Network APIs](0x06g-Testing-Network-Communication.md)" for more information.
+In a real-world scenario, JavaScript can only be injected through a permanent backend Cross-Site Scripting vulnerability or a MITM attack. See the OWASP [XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html "XSS (Cross-Site Scripting) Prevention Cheat Sheet") and the chapter "[iOS Network APIs](0x06g-Testing-Network-Communication.md)" for more information.
 
 For what concerns this section we will learn about:
 
@@ -2889,7 +2874,7 @@ window.webkit.messageHandlers.javaScriptBridge.postMessage(["getSecret"]);
 
 Of course, you may also use the Exploitation Helper it provides:
 
-<img src="Images/Chapters/0x06h/exploit_javascript_bridge.png" width="250px" />
+<img src="Images/Chapters/0x06h/exploit_javascript_bridge.png" width="400px" />
 
 See another example for a vulnerable iOS app and function that is exposed to a WebView in [#thiel2] page 156.
 
@@ -3079,7 +3064,7 @@ There are multiple ways to do XML encoding. Similar to JSON parsing, there are v
 - [SwiftyXMLParser](https://github.com/yahoojapan/SwiftyXMLParser "SwiftyXMLParser")
 - [SWXMLHash](https://github.com/drmohundro/SWXMLHash "SWXMLHash")
 
-They vary in terms of speed, memory usage, object persistence and more important: differ in how they handle XML external entities. See [XXE in the Apple iOS Office viewer](https://nvd.nist.gov/vuln/detail/CVE-2015-3784 "CVE-2015-3784") as an example. Therefore, it is key to disable external entity parsing if possible. See the [OWASP XXE prevention cheatsheet](https://goo.gl/86epVd "XXE prevention cheatsheet") for more details.
+They vary in terms of speed, memory usage, object persistence and more important: differ in how they handle XML external entities. See [XXE in the Apple iOS Office viewer](https://nvd.nist.gov/vuln/detail/CVE-2015-3784 "CVE-2015-3784") as an example. Therefore, it is key to disable external entity parsing if possible. See the [OWASP XXE prevention cheatsheet](https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html "XXE Prevention Cheatsheet") for more details.
 Next to the libraries, you can make use of Apple's [`XMLParser` class](https://developer.apple.com/documentation/foundation/xmlparser "XMLParser")
 
 When not using third party libraries, but Apple's `XMLParser`, be sure to let `shouldResolveExternalEntities` return `false`.
@@ -3117,7 +3102,7 @@ There are several ways to perform dynamic analysis:
 ## Testing enforced updating (MSTG-ARCH-9)
 
 Enforced updating can be really helpful when it comes to public key pinning (see the Testing Network communication for more details) when a pin has to be refreshed due to a certificate/public key rotation. Next, vulnerabilities are easily patched by means of forced updates.
-The challenge with iOS however, is that Apple does not provide any APIs yet to automate this process, instead, developers will have to create their own mechanism, such as described at various [blogs](https://mobikul.com/show-update-application-latest-version-functionality-ios-app-swift-3/ "Updating version in Swift 3") which boil down to looking up properties of the app using `http://itunes.apple.com/lookup\?id\<BundleId>` or third party libaries, such as [Siren](https://github.com/ArtSabintsev/Siren "Siren") and [react-native-appstore-version-checker](https://www.npmjs.com/package/react-native-appstore-version-checker "Update checker for React"). Most of these implementations will require a certain given version offered by an API or just "latest in the appstore", which means users can be frustrated with having to update the app, even though no business/security need for an update is truly there.
+The challenge with iOS however, is that Apple does not provide any APIs yet to automate this process, instead, developers will have to create their own mechanism, such as described at various [blogs](https://mobikul.com/show-update-application-latest-version-functionality-ios-app-swift-3/ "Updating version in Swift 3") which boil down to looking up properties of the app using `http://itunes.apple.com/lookup\?id\<BundleId>` or third party libraries, such as [Siren](https://github.com/ArtSabintsev/Siren "Siren") and [react-native-appstore-version-checker](https://www.npmjs.com/package/react-native-appstore-version-checker "Update checker for React"). Most of these implementations will require a certain given version offered by an API or just "latest in the appstore", which means users can be frustrated with having to update the app, even though no business/security need for an update is truly there.
 
 Please note that newer versions of an application will not fix security issues that are living in the backends to which the app communicates. Allowing an app not to communicate with it might not be enough. Having proper API-lifecycle management is key here.
 Similarly, when a user is not forced to update, do not forget to test older versions of your app against your API and/or use proper API versioning.

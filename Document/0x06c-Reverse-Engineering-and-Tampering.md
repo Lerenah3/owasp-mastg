@@ -24,11 +24,11 @@ If you have a license for IDA Pro, you can analyze the app binary using IDA Pro 
 
 To get started, simply open the app binary in IDA Pro.
 
-![IDA Pro open a Mach-O file](Images/Chapters/0x06c/ida_macho_import.png)
+<img src="Images/Chapters/0x06c/ida_macho_import.png" width="100%" />
 
 Upon opening the file, IDA Pro will perform auto-analysis, which can take a while depending on the size of the binary. Once the auto-analysis is completed you can browse the disassembly in the **IDA View** (Disassembly) window and explore functions in the **Functions** window, both shown in the screenshot below.
 
-![IDA Pro main window](Images/Chapters/0x06c/ida_main_window.png)
+<img src="Images/Chapters/0x06c/ida_main_window.png" width="100%" />
 
 A regular IDA Pro license does not include a decompiler by default and requires an additional license for the Hex-Rays decompiler, which is expensive. In contrast, Ghidra comes with a very capable free builtin decompiler, making it a compelling alternative to use for reverse engineering.
 
@@ -44,7 +44,11 @@ Black box analysis of iOS apps without access to the original source code requir
 
 ### Basic Information Gathering
 
-You can use [class-dump](0x08-Testing-Tools.md#class-dump) to get information about methods in the application's source code. The example below uses the [Damn Vulnerable iOS App](http://damnvulnerableiosapp.com/ "Damn Vulnerable iOS App") to demonstrate this. Our binary is a so-called fat binary, which means that it can be executed on 32- and 64-bit platforms:
+In this section, we will learn about some approaches and tools for collecting basic information about a given application using static analysis.
+
+#### Application Binary
+
+You can use [class-dump](0x08-Testing-Tools.md#class-dump) to get information about methods in the application's source code. The example below uses the [Damn Vulnerable iOS App](https://damnvulnerableiosapp.com/ "Damn Vulnerable iOS App") to demonstrate this. Our binary is a so-called fat binary, which means that it can be executed on 32- and 64-bit platforms:
 
 ```bash
 $ unzip DamnVulnerableiOSApp.ipa
@@ -95,6 +99,36 @@ The following command is listing shared libraries:
 $ otool -L <binary>
 ```
 
+#### Retrieving Strings
+
+Strings are always a good starting point while analyzing a binary, as they provide context to the associated code. For instance, an error log string such as "Cryptogram generation failed" gives us a hint that the adjoining code might be responsible for the generation of a cryptogram.
+
+In order to extract strings from an iOS binary, you can use GUI tools such as Ghidra or Cutter or rely on CLI-based tools such as the _strings_ Unix utility (`strings <path_to_binary>`) or radare2's rabin2 (`rabin2 -zz <path_to_binary>`). When using the CLI-based ones you can take advantage of other tools such as grep (e.g. in conjunction with regular expressions) to further filter and analyze the results.
+
+#### Cross References
+
+Ghidra can be used for analyzing the iOS binaries and obtaining cross references by right clicking the desired function and selecting **Show References to**.
+
+#### API Usage
+
+The iOS platform provides many built-in libraries for frequently used functionalities in applications, for example cryptography, Bluetooth, NFC, network and location libraries. Determining the presence of these libraries in an application can give us valuable information about its underlying working.
+
+For instance, if an application is importing the `CC_SHA256` function, it indicates that the application will be performing some kind of hashing operation using the SHA256 algorithm. Further information on how to analyze iOS's cryptographic APIs is discussed in the section "[iOS Cryptographic APIs](0x06e-Testing-Cryptography.md "iOS Cryptographic APIs")".
+
+Similarly, the above approach can be used to determine where and how an application is using Bluetooth. For instance, an application performing communication using the Bluetooth channel must use functions from the Core Bluetooth framework such as `CBCentralManager` or `connect`. Using the [iOS Bluetooth documentation](https://developer.apple.com/documentation/corebluetooth "iOS Bluetooth documentation") you can determine the critical functions and start analysis around those function imports.
+
+#### Network Communication
+
+Most of the apps you might encounter connect to remote endpoints. Even before you perform any dynamic analysis (e.g. traffic capture and analysis), you can obtain some initial inputs or entry points by enumerating the domains to which the application is supposed to communicate to.
+
+Typically these domains will be present as strings within the binary of the application. One can extract domains by retrieving strings (as discussed above) or checking the strings using tools like Ghidra. The latter option has a clear advantage: it can provide you with context, as you'll be able to see in which context each domain is being used by checking the cross-references.
+
+From here on you can use this information to derive more insights which might be of use later during your analysis, e.g. you could match the domains to the pinned certificates or perform further reconnaissance on domain names to know more about the target environment.
+
+The implementation and verification of secure connections can be an intricate process and there are numerous aspects to consider. For instance, many applications use other protocols apart from HTTP such as XMPP or plain TCP packets, or perform certificate pinning in an attempt to deter MITM attacks.
+
+Remember that in most cases, only using static analysis will not be enough and might even turn to be extremely inefficient when compared to the dynamic alternatives which will get much more reliable results (e.g. using an interceptor proxy). In this section we've just slightly touched the surface, so please refer to the section "[Basic Network Monitoring/Sniffing](0x06b-Basic-Security-Testing.md#basic-network-monitoringsniffing "Basic Network Monitoring/Sniffing")" in the "iOS Basic Security Testing" chapter and check out the test cases in the chapter "[iOS Network APIs](0x06g-Testing-Network-Communication.md "iOS Network APIs")" for further information.
+
 ### Manual (Reversed) Code Review
 
 #### Reviewing Disassembled Objective-C and Swift Code
@@ -116,11 +150,11 @@ In addition to the techniques learned in the "[Disassembling and Decompiling](#d
 
 We will be using the [UnCrackable Level 1 crackme app](https://github.com/OWASP/owasp-mstg/blob/master/Crackmes/iOS/Level_01/UnCrackable_Level1.ipa "UnCrackable Level 1 iOS App"), which has the simple goal of finding a _secret string_ hidden somewhere in the binary. The application has a single home screen and a user can interact via inputting custom strings in the provided text field.
 
-<img src="Images/Chapters/0x06c/manual_reversing_app_home_screen2.png" alt="Home screen of the UnCrackable Level 1 application" width="300" />
+<img src="Images/Chapters/0x06c/manual_reversing_app_home_screen2.png" width="400px" />
 
 When the user inputs the wrong string, the application shows a pop-up with the "Verification Failed" message.
 
-<img src="Images/Chapters/0x06c/manual_reversing_app_wrong_input.png" alt="Verification Failed Pop-Up" width="300" />
+<img src="Images/Chapters/0x06c/manual_reversing_app_wrong_input.png" width="400px" />
 
 You can keep note of the strings displayed in the pop-up, as this might be helpful when searching for the code where the input is processed and a decision is being made. Luckily, the complexity and interaction with this application is straightforward, which bodes well for our reversing endeavors.
 
@@ -128,11 +162,11 @@ You can keep note of the strings displayed in the pop-up, as this might be helpf
 
 We can start by checking the strings present in the binary by opening it in Ghidra. The listed strings might be overwhelming at first, but with some experience in reversing Objective-C code, you'll learn how to _filter_ and discard the strings that are not really helpful or relevant. For instance, the ones shown in screenshot below, which are generated for the Objective-C runtime. Other strings might be helpful in some cases, such as those containing symbols (function names, class names, etc.) and we'll be using them when performing static analysis to check if some specific function is being used.
 
-<img src="Images/Chapters/0x06c/manual_reversing_ghidra_objc_runtime_strings.png" alt="Objective-C runtime related strings" width="500" />
+<img src="Images/Chapters/0x06c/manual_reversing_ghidra_objc_runtime_strings.png" width="100%" />
 
 If we continue our careful analysis, we can spot the string, "Verification Failed", which is used for the pop-up when a wrong input is given. If you follow the cross-references (Xrefs) of this string, you will reach `buttonClick` function of the `ViewController` class. We will look into the `buttonClick` function later in this section. When further checking the other strings in the application, only a few of them look a likely candidate for a _hidden flag_. You can try them and verify as well.
 
-<img src="Images/Chapters/0x06c/manual_reversing_ghidra_strings.png" alt="Interesting strings in the UnCrackable Level 1 application" width="500" />
+<img src="Images/Chapters/0x06c/manual_reversing_ghidra_strings.png" width="100%" />
 
 Moving forward, we have two paths to take. Either we can start analyzing the `buttonClick` function identified in the above step, or start analyzing the application from the various entry points. In real world situation, most times you will be taking the first path, but from a learning perspective, in this section we will take the latter path.
 
@@ -147,13 +181,13 @@ Once we're done with the analysis of all the functions in the `AppDelegate` clas
 
 Luckily the current application has a small code base, and we can find another `ViewController` class in the **Symbol Tree** view. In this class, function `viewDidLoad` function looks interesting. If you check the documentation of [`viewDidLoad`](https://developer.apple.com/documentation/uikit/uiviewcontroller/1621495-viewdidload "viewDidLoad()"), you can see that it can also be used to perform additional initialization on views.
 
-<img src="Images/Chapters/0x06c/manual_reversing_ghidra_viewdidload_decompile.png" alt="Decompilation of viewDidLoad function" width="500" />
+<img src="Images/Chapters/0x06c/manual_reversing_ghidra_viewdidload_decompile.png" width="600px" />
 
 If we check the decompilation of this function, there are a few interesting things going on. For instance, there is a call to a native function at line 31 and a label is initialized with a `setHidden` flag set to 1 in lines 27-29. You can keep a note of these observations and continue exploring the other functions in this class. For brevity, exploring the other parts of the function is left as an exercise for the readers.
 
 In our first step, we observed that the application verifies the input string only when the UI button is pressed. Thus, analyzing the `buttonClick` function is an obvious target. As earlier mentioned, this function also contains the string we see in the pop-ups. At line 29 a decision is being made, which is based on the result of `isEqualString` (output saved in `uVar1` at line 23). The input for the comparison is coming from the text input field (from the user) and the value of the `label`. Therefore, we can assume that the hidden flag is stored in that label.
 
-<img src="Images/Chapters/0x06c/manual_reversing_ghidra_buttonclick_decompiled.png" alt="Decompilation of buttonClick function" width="500" />
+<img src="Images/Chapters/0x06c/manual_reversing_ghidra_buttonclick_decompiled.png" width="600px" />
 
 Now we have followed the complete flow and have all the information about the application flow. We also concluded that the hidden flag is present in a text label and in order to determine the value of the label, we need to revisit `viewDidLoad` function, and understand what is happening in the native function identified. Analysis of the native function is discussed in "[Reviewing Disassembled Native Code](#reviewing-disassembled-native-code "Reviewing Disassembled Native Code")".
 
@@ -173,7 +207,7 @@ Decompilers can help us in analyzing native code, but they should be used with c
 
 We will be analyzing the native function identified in `viewDidLoad` function in the previous section. The function is located at offset 0x1000080d4. The return value of this function used in the `setText` function call for the label. This text is used to compare against the user input. Thus, we can be sure that this function will be returning a string or equivalent.
 
-<img src="Images/Chapters/0x06c/manual_reversing_ghidra_native_disassembly.png" alt="Disassembly of the native function" width="500" />
+<img src="Images/Chapters/0x06c/manual_reversing_ghidra_native_disassembly.png" width="100%" />
 
 The first thing we can see in the disassembly of the function is that there is no input to the function. The registers X0-X7 are not read throughout the function. Also, there are multiple calls to other functions like the ones at 0x100008158, 0x10000dbf0 etc.
 
@@ -192,7 +226,7 @@ The return value from the function (found in W0), is stored to the address in re
 
 To determine the value of the hidden flag we need to know the return value of each of the subsequent function calls identified above. When analyzing the function 0x100006fb4, we can observe that this function is much bigger and more complex than the previous one we analyzed. Function graphs can be very helpful when analyzing complex functions, as it helps into better understanding the control flow of the function. Function graphs can be obtained in Ghidra by clicking the **Display function graph** icon in the sub-menu.
 
-![Function graph from 0x100006fb4](Images/Chapters/0x06c/manual_reversing_ghidra_function_graph.png)
+<img src="Images/Chapters/0x06c/manual_reversing_ghidra_function_graph.png" width="100%" />
 
 Manually analyzing all the native functions completely will be time consuming and might not be the wisest approach. In such a scenario using a dynamic analysis approach is highly recommended. For instance, by using the techniques like hooking or simply debugging the application, we can easily determine the returned values. Normally it's a good idea to use a dynamic analysis approach and then fallback to manually analyzing the functions in a feedback loop. This way you can benefit from both approaches at the same time while saving time and reducing effort. Dynamic analysis techniques are discussed in "[Dynamic Analysis](#dynamic-analysis "Dynamic Analysis")" section.
 
@@ -237,7 +271,7 @@ If you've developed and deployed iOS apps with Xcode before, you already have yo
 
 ```bash
 $ security find-identity -v
- 1) 61FA3547E0AF42A11E233F6A2B255E6B6AF262CE "iPhone Distribution: Vantage Point Security Pte. Ltd."
+ 1) 61FA3547E0AF42A11E233F6A2B255E6B6AF262CE "iPhone Distribution: Company Name Ltd."
  2) 8004380F331DCA22CC1B47FB1A805890AE41C938 "iPhone Developer: Bernhard Müller (RV852WND79)"
 ```
 
@@ -300,6 +334,19 @@ iOweApp 2828 mobile  txt    REG    1,2   664848 234595 /usr/lib/dyld
 ...
 ```
 
+#### Loaded Native Libraries
+
+You can use the `list_frameworks` command in [objection](0x08-Testing-Tools.md#objection) to list all the application's bundles that represent Frameworks.
+
+```bash
+...itudehacks.DVIAswiftv2.develop on (iPhone: 13.2.3) [usb] # ios bundles list_frameworks
+Executable      Bundle                                     Version    Path
+--------------  -----------------------------------------  ---------  -------------------------------------------
+Bolts           org.cocoapods.Bolts                        1.9.0      ...8/DVIA-v2.app/Frameworks/Bolts.framework
+RealmSwift      org.cocoapods.RealmSwift                   4.1.1      ...A-v2.app/Frameworks/RealmSwift.framework
+                                                                      ...ystem/Library/Frameworks/IOKit.framework
+...
+
 #### Open Connections
 
 `lsof` command when invoked with option `-i`, it gives the list of open network ports for all active processes on the device. To get a list of open network ports for a specific process, the `lsof -i -a -p <pid>` command can be used, where `-a` (AND) option is used for filtering. Below a filtered output for PID 1 is shown.
@@ -325,7 +372,7 @@ The contents of an application's sandboxed folder has already been discussed in 
 
 Coming from a Linux background you'd expect the `ptrace` system call to be as powerful as you're used to but, for some reason, Apple decided to leave it incomplete. iOS debuggers such as LLDB use it for attaching, stepping or continuing the process but they cannot use it to read or write memory (all `PT_READ_*` and `PT_WRITE*` requests are missing). Instead, they have to obtain a so-called Mach task port (by calling `task_for_pid` with the target process ID) and then use the Mach IPC interface API functions to perform actions such as suspending the target process and reading/writing register states (`thread_get_state`/`thread_set_state`) and virtual memory (`mach_vm_read`/`mach_vm_write`).
 
-> For more information you can refer to the LLVM project in GitHub which contains the [source code for LLDB](https://github.com/llvm/llvm-project/tree/master/lldb "LLDB") as well as Chapter 5 and 13 from "Mac OS X and iOS Internals: To the Apple's Core" [#levin] and Chapter 4 "Tracing and Debugging" from "The Mac Hacker's Handbook" [#miller].
+> For more information you can refer to the LLVM project in GitHub which contains the [source code for LLDB](https://github.com/llvm/llvm-project/tree/main/lldb "LLDB") as well as Chapter 5 and 13 from "Mac OS X and iOS Internals: To the Apple's Core" [#levin] and Chapter 4 "Tracing and Debugging" from "The Mac Hacker's Handbook" [#miller].
 
 #### Debugging with LLDB
 
@@ -473,15 +520,15 @@ The final breakpoint address to be used in the debugger is the sum of the above 
 
 When a binary is opened in a disassembler like Ghidra, it loads a binary by emulating the respective operating system's loader. The address at which the binary is loaded is called _image base address_. All the code and symbols inside this binary can be addressed using a constant address offset from this image base address. In Ghidra, the image base address can be obtained by determining the address of the start of a Mach-O file. In this case, it is 0x100000000.
 
-![Obtaining image base address using Ghidra](Images/Chapters/0x06c/debugging_ghidra_image_base_address.png "Obtaining image base address using Ghidra")
+<img src="Images/Chapters/0x06c/debugging_ghidra_image_base_address.png" width="100%" />
 
 From our previous analysis of the UnCrackable Level 1 application in "[Manual (Reversed) Code Review](#manual-reversed-code-review)" section, the value of the hidden string is stored in a label with the `hidden` flag set. In the disassembly, the text value of this label is stored in register `X21`, stored via `mov` from `X0`, at offset 0x100004520. This is our _breakpoint offset_.
 
-![Breakpoint address using Ghidra](Images/Chapters/0x06c/debugging_ghidra_breakpoint.png "Breakpoint address using Ghidra")
+<img src="Images/Chapters/0x06c/debugging_ghidra_breakpoint.png" width="100%" />
 
 For the second address, we need to determine the _ASLR shift offset_ for a given process. The ASLR offset can be determined by using the LLDB command `image list -o -f`. The output is shown in the screenshot below.
 
-![Process image list](Images/Chapters/0x06c/debugging_lldb_image_list.png "Process image list")
+<img src="Images/Chapters/0x06c/debugging_lldb_image_list.png" width="100%" />
 
 In the output, the first column contains the sequence number of the image ([X]), the second column contains the randomly generated ASLR offset, while 3rd column contains the full path of the image and towards the end, content in the bracket shows the image base address after adding ASLR offset to the original image base address (0x100000000 + 0x70000 = 0x100070000). You will notice the image base address of 0x100000000 is same as in Ghidra. Now, to obtain the effective memory address for a code location we only need to add ASLR offset to the address identified in Ghidra. The effective address to set the breakpoint will be 0x100004520 + 0x70000 = 0x100074520. The breakpoint can be set using command `b 0x100074520`.
 
@@ -489,7 +536,7 @@ In the output, the first column contains the sequence number of the image ([X]),
 
 After putting the breakpoint and running the app, the execution will be halted once the breakpoint is hit. Now you can access and explore the current state of the process. In this case, you know from the previous static analysis that the register `X0` contains the hidden string, thus let's explore it. In LLDB you can print Objective-C objects using the `po` (_print object_) command.
 
-![Setting breakpoint in LLDB](Images/Chapters/0x06c/debugging_lldb_breakpoint_solution.png "Setting breakpoint in LLDB")
+<img src="Images/Chapters/0x06c/debugging_lldb_breakpoint_solution.png" width="100%" />
 
 Voila, the crackme can be easily solved aided by static analysis and a debugger. There are plethora of features implemented in LLDB, including changing the value of the registers, changing values in the process memory and even [automating tasks using Python scripts](https://lldb.llvm.org/use/python.html "LLDB - Python Scripting").
 
@@ -497,7 +544,9 @@ Officially Apple recommends use of LLDB for debugging purposes, but GDB can be a
 
 ### Tracing
 
-#### Execution Tracing
+Tracing involves recording the information about a program's execution. In contrast to Android, there are limited options available for tracing various aspects of an iOS app. In this section we will be heavily relying on tools such as Frida for performing tracing.
+
+#### Method Tracing
 
 Intercepting Objective-C methods is a useful iOS security testing technique. For example, you may be interested in data storage operations or network requests. In the following example, we'll write a simple tracer for logging HTTP(S) requests made via iOS standard HTTP APIs. We'll also show you how to inject the tracer into the Safari web browser.
 
@@ -527,6 +576,18 @@ Next, navigate to a new website in Safari. You should see traced function calls 
  21324 ms     | -[NSURLRequest initWithURL:0x106388b00 cachePolicy:0x0 timeoutInterval:0x106388b80
 ```
 
+#### Native Libraries Tracing
+
+As discussed earlier in this chapter, iOS applications can also contain native code (C/C++ code) and it can be traced using the `frida-trace` CLI as well. For example, you can trace calls to the `open` function by running the following command:
+
+```bash
+$ frida-trace -U -i "open" sg.vp.UnCrackable1
+```
+
+The overall approach and further improvisation for tracing native code using Frida is similar to the one discussed in the Android "[Tracing](0x05c-Reverse-Engineering-and-Tampering.md#tracing "Tracing")" section.
+
+Unfortunately, there are no tools such as `strace` or `ftrace` available to trace syscalls or function calls of an iOS app. Only `DTrace` exists, which is a very powerful and versatile tracing tool, but it's only available for MacOS and not for iOS.
+
 ### Emulation-based Analysis
 
 #### iOS Simulator
@@ -537,15 +598,103 @@ While developing and debugging an application, the Xcode toolchain generates x86
 
 #### Corellium
 
-Corellium is a commercial tool which offers virtual iOS devices running actual iOS firmware, being the only publicly available iOS emulator ever. Since it is a proprietary product, not much information is available about the implementation. Corellium has no trial or community licenses available, therefore we won't go into much detail regarding its use.
+Corellium is a commercial tool which offers virtual iOS devices running actual iOS firmware, being the only publicly available iOS emulator ever. Since it is a proprietary product, not much information is available about the implementation. Corellium has no community licenses available, therefore we won't go into much detail regarding its use.
 
 Corellium allows you to launch multiple instances of a device (jailbroken or not) which are accessible as local devices (with a simple VPN configuration). It has the ability to take and restore snapshots of the device state, and also offers a convenient web-based shell to the device. Finally and most importantly, due to its "emulator" nature, you can execute applications downloaded from the Apple App Store, enabling any kind of application analysis as you know it from real iOS (jailbroken) devices.
+
+Note that in order to install an IPA on Corellium devices it has to be unencrypted and signed with a valid Apple developer certificate. See more information [here](https://support.corellium.com/en/articles/6181345-testing-third-party-ios-apps).
 
 ## Binary Analysis
 
 An introduction to binary analysis using binary analysis frameworks has already been discussed in the "[Dynamic Analysis](0x05c-Reverse-Engineering-and-Tampering.md#dynamic-analysis "Dynamic analysis")" section for Android. We recommend you to revisit this section and refresh the concepts on this subject.
 
-For Android, we used Angr's symbolic execution engine to solve a challenge. In this section, we will revisit the Angr binary analysis framework to analyze the [UnCrackable Level 1 crackme app](https://github.com/OWASP/owasp-mstg/blob/master/Crackmes/iOS/Level_01/UnCrackable_Level1.ipa "UnCrackable Level 1 iOS App") but instead of symbolic execution we will use its concrete execution (or dynamic execution) features.
+For Android, we used Angr's symbolic execution engine to solve a challenge. In this section, we will firstly use Unicorn to solve [UnCrackable Level 1 crackme app](https://github.com/OWASP/owasp-mstg/blob/master/Crackmes/iOS/Level_01/UnCrackable_Level1.ipa "UnCrackable Level 1 iOS App") challenge and then we will revisit the Angr binary analysis framework to analyze the challenge but instead of symbolic execution we will use its concrete execution (or dynamic execution) features.
+
+### Unicorn
+
+[Unicorn](http://www.unicorn-engine.org/ "Unicorn") is a lightweight, multi-architecture CPU emulator framework based on [QEMU](https://www.qemu.org/ "QEMU") and [goes beyond it](https://www.unicorn-engine.org/docs/beyond_qemu.html "Beyond QEMU") by adding useful features especially made for CPU emulation. Unicorn provides the basic infrastructure needed to execute processor instructions. In this section we will use [Unicorn's Python bindings](https://github.com/unicorn-engine/unicorn/tree/master/bindings/python "Unicorn Python bindings") to solve the [UnCrackable App for iOS Level 1](https://github.com/OWASP/owasp-mstg/tree/master/Crackmes/iOS/Level_01 "UnCrackable App for iOS Level 1").
+
+To use Unicorn's _full power_, we would need to implement all the necessary infrastructure which generally is readily available from the operating system, e.g. binary loader, linker and other dependencies or use another higher level frameworks such as [Qiling](https://qiling.io "Qiling") which leverages Unicorn to emulate CPU instructions, but understands the OS context. However, this is superfluous for this very localized challenge where only executing a small part of the binary will suffice.
+
+While performing manual analysis in "[Reviewing Disassembled Native Code](#reviewing-disassembled-native-code "Reviewing Disassembled Native Code")" section, we determined that the function at address 0x1000080d4 is responsible for dynamically generating the secret string. As we're about to see, all the necessary code is pretty much self-contained in the binary, making this a perfect scenario to use a CPU emulator like Unicorn.
+
+<img src="Images/Chapters/0x06c/manual_reversing_ghidra_native_disassembly.png" width="100%" />
+
+If we analyze that function and the subsequent function calls, we will observe that there is no hard dependency on any external library and neither it's performing any system calls. The only access external to the functions occurs for instance at address 0x1000080f4, where a value is being stored to address 0x10000dbf0, which maps to the `__data` section.
+
+Therefore, in order to correctly emulate this section of the code, apart from the `__text` section (which contains the instructions) we also need to load the `__data` section.
+
+To solve the challenge using Unicorn we will perform the following steps:
+
+- Get the ARM64 version of the binary by running `lipo -thin arm64 <app_binary> -output uncrackable.arm64` (ARMv7 can be used as well).
+- Extract the `__text` and `__data` section from the binary.
+- Create and map the memory to be used as stack memory.
+- Create memory and load the `__text` and `__data` section.
+- Execute the binary by providing the start and end address.
+- Finally, dump the return value from the function, which in this case is our secret string.
+
+To extract the content of `__text` and `__data` section from the Mach-O binary we will use [LIEF](https://lief.quarkslab.com/ "Lief"), which provides a convenient abstraction to manipulate multiple executable file formats. Before loading these sections to memory, we need to determine their base addresses, e.g. by using Ghidra, Radare2 or IDA Pro.
+
+<img src="Images/Chapters/0x06c/uncrackable_sections.png" width="500px"/>
+
+From the above table, we will use the base address 0x10000432c for `__text` and 0x10000d3e8 for `__data` section to load them at in the memory.
+
+> While allocating memory for Unicorn, the memory addresses should be 4k page aligned and also the allocated size should be a multiple of 1024.
+
+The following script emulates the function at 0x1000080d4 and dumps the secret string:
+
+```python
+
+import lief
+from unicorn import *
+from unicorn.arm64_const import *
+
+# --- Extract __text and __data section content from the binary ---
+binary = lief.parse("uncrackable.arm64")
+text_section = binary.get_section("__text")
+text_content = text_section.content
+
+data_section = binary.get_section("__data")
+data_content = data_section.content
+
+# --- Setup Unicorn for ARM64 execution ---
+arch = "arm64le"
+emu = Uc(UC_ARCH_ARM64, UC_MODE_ARM)
+
+# --- Create Stack memory ---
+addr = 0x40000000
+size = 1024*1024
+emu.mem_map(addr, size)
+emu.reg_write(UC_ARM64_REG_SP, addr + size - 1)
+
+# --- Load text section --
+base_addr = 0x100000000
+tmp_len = 1024*1024
+text_section_load_addr = 0x10000432c
+emu.mem_map(base_addr, tmp_len)
+emu.mem_write(text_section_load_addr, bytes(text_content))
+
+# --- Load data section ---
+data_section_load_addr = 0x10000d3e8
+emu.mem_write(data_section_load_addr, bytes(data_content))
+
+# --- Hack for stack_chk_guard ---
+# without this will throw invalid memory read at 0x0
+emu.mem_map(0x0, 1024)
+emu.mem_write(0x0, b"00")
+
+
+# --- Execute from 0x1000080d4 to 0x100008154 ---
+emu.emu_start(0x1000080d4, 0x100008154)
+ret_value = emu.reg_read(UC_ARM64_REG_X0)
+
+# --- Dump return value ---
+print(emu.mem_read(ret_value, 11))
+```
+
+> You may notice that there is an additional memory allocation at address 0x0, this is a simple hack around `stack_chk_guard` check. Without this, there will be a invalid memory read error and binary cannot be executed. With this hack, the program will access the value at 0x0 and use it for the `stack_chk_guard` check.
+
+To summarize, using Unicorn do require some additional setup before executing the binary, but once done, this tool can help to provide deep insights into the binary. It provides the flexibility to execute the full binary or a limited part of it. Unicorn also exposes APIs to attach hooks to the execution. Using these hooks you can observe the state of the program at any point during the execution or even manipulate the register or variable values and forcefully explore other execution branches in a program. Another advantage when running a binary in Unicorn is that you don't need to worry about various checks like root/jailbreak detection or debugger detection etc.
 
 ### Angr
 
@@ -553,7 +702,7 @@ For Android, we used Angr's symbolic execution engine to solve a challenge. In t
 
 > The Mach-O backend in Angr is not well-supported, but it works perfectly fine for our case.
 
-While manual analyzing the code in the [Reviewing Disassembled Native Code](#reviewing-disassembled-native-code "Reviewing Disassembled Native Code")" section, we reached a point where performing further manual analysis was cumbersome. The function at offset `0x1000080d4` was identified as the final target which contains the secret string.
+While manually analyzing the code in the [Reviewing Disassembled Native Code](#reviewing-disassembled-native-code "Reviewing Disassembled Native Code")" section, we reached a point where performing further manual analysis was cumbersome. The function at offset `0x1000080d4` was identified as the final target which contains the secret string.
 
 If we revisit that function, we can see that it involves multiple sub-function calls and interestingly none of these functions have any dependencies on other library calls or system calls. This is a perfect case to use Angr's concrete execution engine. Follow the steps below to solve this challenge:
 
@@ -622,6 +771,12 @@ Successfully inserted a LC_LOAD_DYLIB command for arm64
 Writing executable to Payload/UnCrackable Level 1.app/UnCrackable Level 1...
 ```
 
+#### Patching Example: Making an App Debuggable
+
+By default, an app available on the Apple App Store is not debuggable. In order to debug an iOS application, it must have the `get-task-allow` entitlement enabled. This entitlement allows other processes (like a debugger) to attach to the app. Xcode is not adding the `get-task-allow` entitlement in a distribution provisioning profile; it is only whitelisted and added in a development provisioning profile.
+
+Thus, to debug an iOS application obtained from the App Store, it needs to be re-signed with a development provisioning profile with the `get-task-allow` entitlement. How to re-sign an application is discussed in the next section.
+
 #### Repackaging and Re-Signing
 
 Of course, tampering an app invalidates the main executable's code signature, so this won't run on a non-jailbroken device. You'll need to replace the provisioning profile and sign both the main executable and the files you've made include (e.g. `FridaGadget.dylib`) with the certificate listed in the profile.
@@ -668,7 +823,7 @@ PID  Name
 499  Gadget
 ```
 
-![Frida on non-JB device](Images/Chapters/0x06b/fridaStockiOS.png "Frida on non-JB device")
+<img src="Images/Chapters/0x06b/fridaStockiOS.png" width="100%" />
 
 When something goes wrong (and it usually does), mismatches between the provisioning profile and code-signing header are the most likely causes. Reading the [official documentation](https://developer.apple.com/support/code-signing/ "Code Signing") helps you understand the code-signing process. Apple's [entitlement troubleshooting page](https://developer.apple.com/library/content/technotes/tn2415/_index.html "Entitlements Troubleshooting") is also a useful resource.
 
@@ -858,7 +1013,7 @@ sys.stdin.read()
 
 Start Safari on the iOS device. Run the above Python script on your connected host and open the device log (as explained in the section "Monitoring System Logs" from the chapter "iOS Basic Security Testing"). Try opening a new URL in Safari, e.g. <https://github.com/OWASP/owasp-mstg>; you should see Frida's output in the logs as well as in your terminal.
 
-![Frida Xcode Log](Images/Chapters/0x06c/frida-xcode-log.png)
+<img src="Images/Chapters/0x06c/frida-xcode-log.png" width="100%" />
 
 Of course, this example illustrates only one of the things you can do with Frida. To unlock the tool's full potential, you should learn to use its [JavaScript API](https://www.frida.re/docs/javascript-api/ "Frida JavaScript API reference"). The documentation section of the Frida website has a [tutorial](https://www.frida.re/docs/ios/ "Frida Tutorial") and [examples](https://www.frida.re/docs/examples/ios/ "Frida examples") for using Frida on iOS.
 
@@ -962,7 +1117,7 @@ e search.in=perm:r--
 e search.quiet=false
 ```
 
-For now, we'll continue with the defaults and concentrate on string search. In this first example, you can start by searching for something that you know it should be located in the main binary of the app:
+For now, we'll continue with the defaults and concentrate on string search. In this first example, you can start by searching for something that you know should be located in the main binary of the app:
 
 ```bash
 [0x00000000]> \/ iGoat
@@ -1005,12 +1160,12 @@ In fact, the string could be found at address `0x1c06619c0`. Seek `s` to there a
 
 Now you know that the string is located in a rw- (read and write) region of the memory map.
 
-Additionally, you can search for occurrences of the [wide version of the string](https://en.wikipedia.org/wiki/Wide_character "Wide character") (`\/w`) and, again, check their memory regions:
+Additionally, you can search for occurrences of the [wide version of the string](https://en.wikipedia.org/wiki/Wide_character "Wide character") (`/w`) and, again, check their memory regions:
 
 > This time we run the `\dm.` command for all `@@` hits matching the glob `hit5_*`.
 
 ```bash
-[0x00000000]> \/w owasp-mstg
+[0x00000000]> /w owasp-mstg
 Searching 20 bytes: 6f 00 77 00 61 00 73 00 70 00 2d 00 6d 00 73 00 74 00 67 00
 Searching 20 bytes in [0x0000000100708000-0x000000010096c000]
 ...
