@@ -14,7 +14,7 @@ However, iOS apps run in a more restricted environment than their desktop counte
 
 To protect users from malicious applications, Apple restricts and controls access to the apps that are allowed to run on iOS devices. Apple's App Store is the only official application distribution platform. There developers can offer their apps and consumers can buy, download, and install apps. This distribution style differs from Android, which supports several app stores and sideloading (installing an app on your iOS device without using the official App Store). In iOS, sideloading typically refers to the app installation method via USB, although there are other enterprise iOS app distribution methods that do not use the App Store under the [Apple Developer Enterprise Program](https://developer.apple.com/programs/enterprise/ "Apple Developer Enterprise Program").
 
-In the past, sideloading was possible only with a jailbreak or complicated workarounds. With iOS 9 or higher, it is possible to [sideload via Xcode](https://www.igeeksblog.com/how-to-sideload-apps-on-iphone-ipad-in-ios-10/ "How to Sideload Apps on iPhone and iPad Running iOS 10 using Xcode 8").
+In the past, sideloading was possible only with a jailbreak or complicated workarounds. With iOS 9 or higher, it is possible to [sideload via Xcode](https://forums.developer.apple.com/forums/thread/91370).
 
 iOS apps are isolated from each other via Apple's iOS sandbox (historically called Seatbelt), a mandatory access control (MAC) mechanism describing the resources an app can and can't access. Compared to Android's extensive Binder IPC facilities, iOS offers very few IPC (Inter Process Communication) options, minimizing the potential attack surface.
 
@@ -168,20 +168,18 @@ The following APIs [require user permission](https://www.apple.com/business/docs
 - Media Library
 - Social media accounts
 
-## iOS Application Attack surface
+### DeviceCheck
 
-The iOS application attack surface consists of all components of the application, including the supportive material necessary to release the app and to support its functioning. The iOS application may be vulnerable to attack if it does not:
+The DeviceCheck framework, including its components DeviceCheck and App Attest, helps you prevent fraudulent use of your services. It consists of a framework that you use from your app and an Apple server which is accessible only to your own server. DeviceCheck allows you to persistently store information on the device and on Apple servers. The stored information remains intact across app reinstallation, device transfers, or resets, with the option to reset this data periodically.
 
-- Validate all input by means of IPC communication or URL schemes, see also:
-  - [Testing Custom URL Schemes](0x06h-Testing-Platform-Interaction.md#testing-custom-url-schemes-mstg-platform-3)
-- Validate all input by the user in input fields.
-- Validate the content loaded inside a WebView, see also:
-  - [Testing iOS WebViews](0x06h-Testing-Platform-Interaction.md#testing-ios-webviews-mstg-platform-5)
-  - [Determining Whether Native Methods Are Exposed Through WebViews](0x06h-Testing-Platform-Interaction.md#determining-whether-native-methods-are-exposed-through-webviews-mstg-platform-7)
-- Securely communicate with backend servers or is susceptible to man-in-the-middle (MITM) attacks between the server and the mobile application, see also:
-  - [Testing Network Communication](0x04f-Testing-Network-Communication.md#testing-network-communication)
-  - [iOS Network Communication](0x06g-Testing-Network-Communication.md)
-- Securely stores all local data, or loads untrusted data from storage, see also:
-  - [Data Storage on iOS](0x06d-Testing-Data-Storage.md#data-storage-on-ios)
-- Protect itself against compromised environments, repackaging or other local attacks, see also:
-  - [iOS Anti-Reversing Defenses](0x06j-Testing-Resiliency-Against-Reverse-Engineering.md#ios-anti-reversing-defenses)
+DeviceCheck is typically used to mitigate fraud by restricting access to sensitive resources. For example, limiting promotions to once per device, identify and flag fraudulent devices, etc. However, it definitely cannot prevent all fraud. For example, it is [not meant to detect compromised operating systems](https://swiftrocks.com/app-attest-apple-protect-ios-jailbreak "App Attest: How to prevent an iOS app's APIs from being abused") (aka. jailbreak detection).
+
+For more information, refer to the [DeviceCheck documentation](https://developer.apple.com/documentation/devicecheck "DeviceCheck documentation").
+
+#### App Attest
+
+App Attest, available under the DeviceCheck framework, helps you verify instances of the app running on a device by enabling apps to attach a hardware-backed assertion to requests, ensuring they originate from the legitimate app on a genuine Apple device. This feature aids in preventing modified apps from communicating with your server.
+
+The process involves generating and validating cryptographic keys, along with a set of verifications performed by your server, ensuring the authenticity of the request. It is important to note that while App Attest enhances security, it does not guarantee complete protection against all forms of fraudulent activities.
+
+For more detailed information, refer to the [WWDC 2021](https://developer.apple.com/videos/play/wwdc2021/10244 "WWDC 2021") session, along with the ["DeviceCheck documentation"](https://developer.apple.com/documentation/devicecheck/) and ["Validating apps that connect to your server"](https://developer.apple.com/documentation/devicecheck/validating-apps-that-connect-to-your-server).

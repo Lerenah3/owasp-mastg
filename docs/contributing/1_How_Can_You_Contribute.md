@@ -1,14 +1,6 @@
 # How Can You Contribute?
 
-A direct contribution to the MASVS or the MASTG can be done in many different ways. First of all **Create a GitHub account** (a free one is enough) by following [these steps](https://docs.github.com/en/get-started/signing-up-for-github/signing-up-for-a-new-github-account "Signing up for a new GitHub account").
-
-## ⭐ Give us a Star
-
-Show your interest and support to the project by [_starring_ it](https://github.com/OWASP/owasp-mastg).
-
-<a href="https://github.com/OWASP/owasp-mastg"><img src="../../assets/starring.png" width="300px"/></a>
-
-<br>
+You can directly contribute to the MASVS or MASTG in many different ways! First, go ahead and create a GitHub account for free on the [GitHub homepage](https://github.com/).
 
 ## Contribution Flow
 
@@ -26,14 +18,14 @@ flowchart LR
 
 ## 💬 Participate in Discussions
 
-Our GitHub [Discussions](https://docs.github.com/en/discussions) are the first place to go for asking questions, giving us feedback and proposing new ideas. If your proposal qualifies for the MASTG/MASVS we'll convert it into an "Issue" (the discussion might take a while).
+Our GitHub [Discussions](https://github.com/OWASP/owasp-mastg/discussions) are the first place to go to ask questions, give feedback, and propose new ideas. If your proposal qualifies for the MASTG/MASVS, we'll convert it into an "Issue" (the discussion might take a while).
 
 ## 🎯 Create Issues
 
-You can create [Issues](https://github.com/OWASP/owasp-masvs/issues "MASVS Issues") first for missing requirements, content or errors so that it can be discussed **before** creating a PR.
+Before creating a PR, first create an [Issue](https://github.com/OWASP/owasp-masvs/issues "MASVS Issues") to be discussed for missing requirements, content or errors.
 
-- In order to avoid conflicts that several people are working on the same issue without knowing it, the issue will be assigned to one or more people by the project leaders.
-- Explain what you think is missing in the issue, including references (if available) and give a suggestion as to where it could be added.
+- To avoid multiple people duplicating effort on the same issue, project leaders will assign it to only a few that will own it.
+- Explain what you think is missing in the issue, including references (if available) and suggest where it could be added.
 
 ## 📝 Open a Pull Request
 
@@ -57,9 +49,9 @@ After your PR or issue has been submitted, we will review it as quickly as possi
 If you do proof-reading, these are the things we’re looking for:
 
 - Content [cohesion & coherence](https://writing.chalmers.se/chalmers-writing-guide/writing-a-text/coherence-cohesion/)
-  - is there a good linkage of ideas?
-  - does the paragraph make sense?
-  - does it make sense with the next one? think that hundreds of people have written in here, often without considering the surroundings of the text they were including).
+    - is there a good linkage of ideas?
+    - does the paragraph make sense?
+    - does it make sense with the next one? Think that hundreds of people have written in here, often without considering the surroundings of the text they were including.
 - Reducing the content to a minimum (people tend to be very verbose/wordy) and in such a document we need clear and short/concise statements
 - Optimize for _scannability_ (maybe instead of a big paragraph it would be better to have a bullet point list).
 - Any passive voice sentences? Convert to active voice.
@@ -71,43 +63,3 @@ Refer to Google Technical Writing trainings for more info:
 
 - [Google Technical Writing One](https://developers.google.com/tech-writing/one)
 - [Google Technical Writing Two](https://developers.google.com/tech-writing/two)
-
-## Contribution Credit / Acknowledgments
-
-Contributors are added to the acknowledgments section based on their contributions logged by GitHub and/or by applying to a certain role and consistently demonstrating their commitment. Acknowledgements are visible in:
-
-- [OWASP MASTG Authors & Co-Authors sections](../../Document/0x02a-Frontispiece.md#authors)
-- [OWASP MASTG Contributors section](../../Document/0x02c-Acknowledgements.md#contributors)
-- [OWASP MASTG printed version](https://www.lulu.com/shop/jeroen-willemsen-and-sven-schleier-and-bernhard-müller-and-carlos-holguera/owasp-mobile-security-testing-guide/paperback/product-1kw4dp4k.html)
-
-Contributors are categorized as follows:
-
-- **Project Leader / Author**: Manage the development of the guide continuously and write a large amount of new content. Project Leadership cannot be achieved if any violations of the Code of Conduct occurred in the past. Be aware that you'll be expected to invest lots of time over several months.
-- **Reviewer**: People that continuously monitor and review our [Pull Requests](https://github.com/OWASP/owasp-mastg/pulls) or given useful feedback and suggesting changes.
-- **Most Helpful Discussions contributor**: actively participate in our GitHub Discussions. Contributors with the most answers marked as "The Answer" will get recognized as "Most Helpful" in our official repos.
-- **Co-Author**: Consistently contribute quality content, [at least 2,000 additions logged](https://github.com/OWASP/owasp-mastg/graphs/contributors "Co-author").
-- **Top Contributor**: Consistently contribute quality content, [at least 500 additions logged](https://github.com/OWASP/owasp-mastg/graphs/contributors "Top Contributor").
-- **Contributor**: Any form of contribution, [at least 50 additions logged](https://github.com/OWASP/owasp-mastg/graphs/contributors "Contributor").
-- **Mini-contributor**: Everything below 50 additions, e.g. committing a single word or sentence.
-
-[Contact us](#connect-with-us) (Sven Schleier (Slack: *Sven*) or Carlos Holguera (Slack: *Carlos*)) if you are planning to become an Author/Co-Author/Reviewer, are missing from the acknowledgements (note that we make updates frequently, but not in realtime).
-
-## 🌐 Translating the MASVS
-
-Translating the MASVS in a new language is another great way to contribute. This helps the project to reach to more people around the world.
-
-Before starting a translation please consider the following:
-
-- **First of all** contact us on Slack or via email.
-- We need your commitment. After the first translation is done, we will ask for your help to translate any new changes, so your translation can remain up to date.
-- We need a second translator who can verify that the English version of the MASVS has been translated properly.
-- Once you are all set, go to your fork and follow [these steps](4_Add_new_Language.md).
-
-## 🚫 What not to do
-
-Although we greatly appreciate any and all contributions to the project, there are a few things that you should take into consideration:
-
-- **No advertisement**: The OWASP mobile Security Project cannot be used as a platform for advertisement of commercial tools, companies or individuals. Technical content such as the implementation of certain techniques or tests should be written with free and open-source tools in mind. Commercial tools are typically not accepted, but might be referenced in some specific cases.
-- **No unnecessary self-promotion of tools or blog posts**: If you have a relation with one of the URLs or tools you are referencing, please state so in the PR so that we can verify that the reference is in line with the rest of the guide.
-
-Please be sure to take a careful look at our [Code of Conduct](https://github.com/OWASP/owasp-mastg/blob/master/CODE_OF_CONDUCT.md "Code of Conduct") for all the details and [ask us](../../README.md#connect-with-us) in case of doubt.

@@ -1,10 +1,15 @@
+---
+masvs_category: MASVS-CODE
+platform: all
+---
+
 # Mobile App Code Quality
 
 Mobile app developers use a wide variety of programming languages and frameworks. As such, common vulnerabilities such as SQL injection, buffer overflows, and cross-site scripting (XSS), may manifest in apps when neglecting secure programming practices.
 
 The same programming flaws may affect both Android and iOS apps to some degree, so we'll provide an overview of the most common vulnerability classes frequently in the general section of the guide. In later sections, we will cover OS-specific instances and exploit mitigation features.
 
-## Injection Flaws (MSTG-ARCH-2 and MSTG-PLATFORM-2)
+## Injection Flaws
 
 An _injection flaw_ describes a class of security vulnerability occurring when user input is inserted into backend queries or commands. By injecting meta-characters, an attacker can execute malicious code that is inadvertently interpreted as part of the command or query. For example, by manipulating a SQL query, an attacker could retrieve arbitrary database records or manipulate the content of the backend database.
 
@@ -91,7 +96,7 @@ Verify that the following best practices have been followed:
 
 We will cover details related to input sources and potentially vulnerable APIs for each mobile OS in the OS-specific testing guides.
 
-## Cross-Site Scripting Flaws (MSTG-PLATFORM-2)
+## Cross-Site Scripting Flaws
 
 Cross-site scripting (XSS) issues allow attackers to inject client-side scripts into web pages viewed by users. This type of vulnerability is prevalent in web applications. When a user views the injected script in a browser, the attacker gains the ability to bypass the same origin policy, enabling a wide variety of exploits (e.g. stealing session cookies, logging key presses, performing arbitrary actions, etc.).
 
@@ -99,7 +104,7 @@ In the context of _native apps_, XSS risks are far less prevalent for the simple
 
 An older but well-known example is the [local XSS issue in the Skype app for iOS, first identified by Phil Purviance](https://superevr.com/blog/2011/xss-in-skype-for-ios "XSS in Skype for iOS"). The Skype app failed to properly encode the name of the message sender, allowing an attacker to inject malicious JavaScript to be executed when a user views the message. In his proof-of-concept, Phil showed how to exploit the issue and steal a user's address book.
 
-### Static Analysis
+### Static Analysis - Security Testing Considerations
 
 Take a close look at any WebViews present and investigate for untrusted input rendered by the app.
 
@@ -140,7 +145,7 @@ Kotlin
     }
 ```
 
-Sergey Bobrov was able to take advantage of this in the following [HackerOne report](https://hackerone.com/reports/189793 "[Android] XSS via start ContentActivity"). Any input to the HTML parameter would be trusted in Quora's ActionBarContentActivity. Payloads were successful using adb, clipboard data via ModalContentActivity, and Intents from 3rd party applications.
+Sergey Bobrov was able to take advantage of this in the following [HackerOne report](https://hackerone.com/reports/189793 "HackerOne report - [Android] XSS via start ContentActivity"). Any input to the HTML parameter would be trusted in Quora's ActionBarContentActivity. Payloads were successful using adb, clipboard data via ModalContentActivity, and Intents from 3rd party applications.
 
 - ADB
 
@@ -198,13 +203,13 @@ Consider how data will be rendered in a response. For example, if data is render
 
 For a comprehensive list of escaping rules and other prevention measures, refer to the [OWASP XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html "OWASP XSS Prevention Cheat Sheet").
 
-### Dynamic Analysis
+### Dynamic Analysis - Security Testing Considerations
 
 XSS issues can be best detected using manual and/or automated input fuzzing, i.e. injecting HTML tags and special characters into all available input fields to verify the web application denies invalid inputs or escapes the HTML meta-characters in its output.
 
 A [reflected XSS attack](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/01-Testing_for_Reflected_Cross_Site_Scripting.html "Testing for Reflected Cross site scripting") refers to an exploit where malicious code is injected via a malicious link. To test for these attacks, automated input fuzzing is considered to be an effective method. For example, the [BURP Scanner](https://portswigger.net/burp/ "Burp Suite") is highly effective in identifying reflected XSS vulnerabilities. As always with automated analysis, ensure all input vectors are covered with a manual review of testing parameters.
 
-## Memory Corruption Bugs (MSTG-CODE-8)
+## Memory Corruption Bugs
 
 Memory corruption bugs are a popular mainstay with hackers. This class of bug results from a programming error that causes the program to access an unintended memory location. Under the right conditions, attackers can capitalize on this behavior to hijack the execution flow of the vulnerable program and execute arbitrary code. This kind of vulnerability occurs in a number of ways:
 
@@ -222,10 +227,11 @@ Memory corruption bugs are a popular mainstay with hackers. This class of bug re
 
 The primary goal in exploiting memory corruption is usually to redirect program flow into a location where the attacker has placed assembled machine instructions referred to as _shellcode_. On iOS, the data execution prevention feature (as the name implies) prevents execution from memory defined as data segments. To bypass this protection, attackers leverage return-oriented programming (ROP). This process involves chaining together small, pre-existing code chunks ("gadgets") in the text segment where these gadgets may execute a function useful to the attacker or, call `mprotect` to change memory protection settings for the location where the attacker stored the _shellcode_.
 
-Android apps are, for the most part, implemented in Java which is inherently safe from memory corruption issues by design. However, native apps utilizing JNI libraries are susceptible to this kind of bug.
+Android apps are, for the most part, implemented in Java which is inherently safe from memory corruption issues by design. However, native apps utilizing JNI libraries are susceptible to this kind of bug. In rare cases, Android apps that use XML/JSON parsers to unwrap Java objects are also subject to memory corruption bugs. [An example](https://blog.oversecured.com/Exploiting-memory-corruption-vulnerabilities-on-Android/#example-of-the-vulnerability-in-paypal%E2%80%99s-apps) of such vulnerability was found in the PayPal app.
+
 Similarly, iOS apps can wrap C/C++ calls in Obj-C or Swift, making them susceptible to these kind of attacks.
 
-### Buffer and Integer Overflows
+**Example:**
 
 The following code snippet shows a simple example for a condition resulting in a buffer overflow vulnerability.
 
@@ -259,11 +265,11 @@ Verify that the following best practices have been followed:
 - iOS apps written in Objective-C use NSString class. C apps on iOS should use CFString, the Core Foundation representation of a string.
 - No untrusted data is concatenated into format strings.
 
-### Static Analysis
+### Static Analysis Security Testing Considerations
 
 Static code analysis of low-level code is a complex topic that could easily fill its own book. Automated tools such as [RATS](https://code.google.com/archive/p/rough-auditing-tool-for-security/downloads "RATS - Rough auditing tool for security") combined with limited manual inspection efforts are usually sufficient to identify low-hanging fruits. However, memory corruption conditions often stem from complex causes. For example, a use-after-free bug may actually be the result of an intricate, counter-intuitive race condition not immediately apparent. Bugs manifesting from deep instances of overlooked code deficiencies are generally discovered through dynamic analysis or by testers who invest time to gain a deep understanding of the program.
 
-### Dynamic Analysis
+### Dynamic Analysis Security Testing Considerations
 
 Memory corruption bugs are best discovered via input fuzzing: an automated black-box software testing technique in which malformed data is continually sent to an app to survey for potential vulnerability conditions. During this process, the application is monitored for malfunctions and crashes. Should a crash occur, the hope (at least for security testers) is that the conditions creating the crash reveal an exploitable security flaw.
 
@@ -279,7 +285,7 @@ For more information on fuzzing, refer to the [OWASP Fuzzing Guide](https://owas
 
 PIE (Position Independent Executable) are executable binaries made entirely from PIC. PIE binaries are used to enable [ASLR (Address Space Layout Randomization)](https://en.wikipedia.org/wiki/Address_space_layout_randomization) which randomly arranges the address space positions of key data areas of a process, including the base of the executable and the positions of the stack, heap and libraries.
 
-### Memory management
+### Memory Management
 
 #### Automatic Reference Counting
 
@@ -295,22 +301,10 @@ Unlike tracing garbage collection, ARC does not handle reference cycles automati
 
 [Manual memory management](https://en.wikipedia.org/wiki/Manual_memory_management) is typically required in native libraries written in C/C++ where ARC and GC do not apply. The developer is responsible for doing proper memory management. Manual memory management is known to enable several major classes of bugs into a program when used incorrectly, notably violations of [memory safety](https://en.wikipedia.org/wiki/Memory_safety) or [memory leaks](https://en.wikipedia.org/wiki/Memory_leak).
 
-More information can be found in ["Memory Corruption Bugs (MSTG-CODE-8)"](#memory-corruption-bugs-mstg-code-8).
+More information can be found in ["Memory Corruption Bugs"](#memory-corruption-bugs).
 
 ### Stack Smashing Protection
 
 [Stack canaries](https://en.wikipedia.org/wiki/Stack_buffer_overflow#Stack_canaries) help prevent stack buffer overflow attacks by storing a hidden integer value on the stack right before the return pointer. This value is then validated before the return statement of the function is executed. A buffer overflow attack often overwrites a region of memory in order to overwrite the return pointer and take over the program flow. If stack canaries are enabled, they will be overwritten as well and the CPU will know that the memory has been tampered with.
 
 Stack buffer overflow is a type of the more general programming vulnerability known as [buffer overflow](https://en.wikipedia.org/wiki/Buffer_overflow) (or buffer overrun). Overfilling a buffer on the stack is more likely to **derail program execution** than overfilling a buffer on the heap because the stack contains the return addresses for all active function calls.
-
-## References
-
-### OWASP MASVS
-
-- MSTG-ARCH-2: "Security controls are never enforced only on the client side, but on the respective remote endpoints."
-- MSTG-PLATFORM-2: "All inputs from external sources and the user are validated and if necessary sanitized. This includes data received via the UI, IPC mechanisms such as intents, custom URLs, and network sources."
-- MSTG-CODE-8: "In unmanaged code, memory is allocated, freed and used securely."
-
-### XSS via start ContentActivity
-
-- <https://hackerone.com/reports/189793>
