@@ -1,0 +1,27 @@
+                   
+                   
+┌─────────────────┐
+│ 4 Code Findings │
+└─────────────────┘
+                           
+    MastgTest_reversed.java
+    ❯❱ rules.mastg-android-non-caching-input-types
+          [MASVS-STORAGE] Set input type detected ($this$showPopup_u24lambda_u241) with 129
+                                                                                           
+           35┆ $this$showPopup_u24lambda_u241.setInputType(129);
+            ⋮┆----------------------------------------
+    ❯❱ rules.mastg-android-non-caching-input-types
+          [MASVS-STORAGE] Set input type detected ($this$showPopup_u24lambda_u242) with 1
+                                                                                         
+           38┆ $this$showPopup_u24lambda_u242.setInputType(1);
+            ⋮┆----------------------------------------
+    ❯❱ rules.mastg-android-non-caching-input-types
+          [MASVS-STORAGE] Set input type detected (input3) with 18
+                                                                  
+           41┆ input3.setInputType(18);
+            ⋮┆----------------------------------------
+    ❯❱ rules.mastg-android-non-caching-input-types
+          [MASVS-STORAGE] Set input type detected (input3) with 2
+                                                                 
+           42┆ input3.setInputType(2);
+
